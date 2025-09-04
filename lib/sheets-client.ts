@@ -30,11 +30,11 @@ class SheetsClient {
    */
   private async initializeAuth() {
     try {
-      if (process.env.GOOGLE_SHEETS_CLIENT_EMAIL && process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
+      if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
         this.auth = new GoogleAuth({
           credentials: {
-            client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-            private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, "\n"),
+            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
           },
           scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
         })
@@ -247,7 +247,7 @@ class SheetsClient {
    */
   parseHebrewDate(dateStr: string): Date {
     // Handle empty or invalid input
-    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') {
+    if (!dateStr || typeof dateStr !== "string" || dateStr.trim() === "") {
       return new Date()
     }
 
