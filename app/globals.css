@@ -1,200 +1,125 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@custom-variant dark (&:is(.dark *));
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
 
-:root {
-  /* Updated color scheme based on design brief for Hebrew dashboard */
-  --background: #ffffff;
-  --foreground: #164e63;
-  --card: #ffffff;
-  --card-foreground: #475569;
-  --popover: #ecfeff;
-  --popover-foreground: #164e63;
-  --primary: #164e63;
-  --primary-foreground: #ffffff;
-  --secondary: #ecfeff;
-  --secondary-foreground: #475569;
-  --muted: #fef2f2;
-  --muted-foreground: #374151;
-  --accent: #d97706;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #d9d9d9;
-  --input: #fefce8;
-  --ring: #d97706;
-  --success: #059669;
-  --success-foreground: #ffffff;
-  --chart-1: #164e63;
-  --chart-2: #d97706;
-  --chart-3: #475569;
-  --chart-4: #ecfeff;
-  --chart-5: #dc2626;
-  --radius: 0.5rem;
-  --sidebar: #ecfeff;
-  --sidebar-foreground: #475569;
-  --sidebar-primary: #164e63;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d97706;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #d9d9d9;
-  --sidebar-ring: #d97706;
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 }
 
-.dark {
-  --background: #0f172a;
-  --foreground: #e2e8f0;
-  --card: #1e293b;
-  --card-foreground: #e2e8f0;
-  --popover: #1e293b;
-  --popover-foreground: #e2e8f0;
-  --primary: #0ea5e9;
-  --primary-foreground: #0f172a;
-  --secondary: #334155;
-  --secondary-foreground: #e2e8f0;
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
-  --accent: #f59e0b;
-  --accent-foreground: #0f172a;
-  --destructive: #ef4444;
-  --destructive-foreground: #e2e8f0;
-  --border: #334155;
-  --input: #334155;
-  --ring: #f59e0b;
-  --success: #10b981;
-  --success-foreground: #0f172a;
-  --chart-1: #0ea5e9;
-  --chart-2: #f59e0b;
-  --chart-3: #94a3b8;
-  --chart-4: #334155;
-  --chart-5: #ef4444;
-  --sidebar: #1e293b;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-primary: #0ea5e9;
-  --sidebar-primary-foreground: #0f172a;
-  --sidebar-accent: #f59e0b;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #334155;
-  --sidebar-ring: #f59e0b;
-}
-
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-/* Added Hebrew RTL support and typography optimizations */
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "kern" 1, "liga" 1;
-  }
-
-  /* RTL-specific adjustments */
-  [dir="rtl"] {
-    text-align: right;
-  }
-
-  [dir="rtl"] .flex {
-    flex-direction: row-reverse;
-  }
-
-  [dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-    --tw-space-x-reverse: 1;
-  }
-
-  /* Hebrew number formatting */
-  .hebrew-numbers {
-    font-variant-numeric: lining-nums tabular-nums;
-    direction: ltr;
-    unicode-bidi: embed;
-  }
-
-  /* Currency formatting for Hebrew */
-  .currency-hebrew {
-    direction: ltr;
-    unicode-bidi: embed;
-    text-align: left;
-  }
-
-  /* Improved Hebrew text rendering */
-  .hebrew-text {
-    line-height: 1.6;
-    letter-spacing: 0.01em;
   }
 }
 
-/* Added utility classes for Hebrew dashboard */
-@layer utilities {
-  .rtl-flip {
-    transform: scaleX(-1);
-  }
+/* Hebrew RTL Support Styles */
+.hebrew-text {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Segoe UI', 'Arial', 'Helvetica', sans-serif;
+}
 
-  .ltr-content {
-    direction: ltr;
-    text-align: left;
-  }
+.currency-hebrew {
+  direction: rtl;
+  text-align: center;
+  unicode-bidi: embed;
+}
 
-  .gradient-blue {
-    background: linear-gradient(135deg, oklch(0.45 0.15 240) 0%, oklch(0.55 0.12 220) 100%);
-  }
+.table-rtl {
+  direction: rtl;
+}
 
-  .gradient-success {
-    background: linear-gradient(135deg, oklch(0.55 0.15 140) 0%, oklch(0.6 0.12 160) 100%);
-  }
+.table-rtl th,
+.table-rtl td {
+  text-align: right;
+}
 
-  .gradient-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--chart-1) 100%);
-  }
+.sticky-right {
+  position: sticky;
+  right: 0;
+  background: white;
+  z-index: 10;
+  border-left: 1px solid hsl(var(--border));
+}
 
-  .gradient-accent {
-    background: linear-gradient(135deg, var(--accent) 0%, #f59e0b 100%);
-  }
+.mixed-content {
+  direction: rtl;
+  unicode-bidi: bidi-override;
+}
 
-  .sidebar-gradient {
-    background: linear-gradient(180deg, var(--sidebar) 0%, #f0f9ff 100%);
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  direction: rtl;
+}
+
+@media (max-width: 768px) {
+  .hebrew-text {
+    font-size: 0.9rem;
+  }
+  
+  .table-rtl {
+    font-size: 0.85rem;
+  }
+  
+  .sticky-right {
+    min-width: 80px;
   }
 }

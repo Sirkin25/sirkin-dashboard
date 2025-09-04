@@ -1,0 +1,160 @@
+/* Hebrew RTL Support Styles */
+
+/* Base RTL support */
+.hebrew-text {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Segoe UI', 'Arial', 'Helvetica', sans-serif;
+}
+
+/* Currency formatting with RTL support */
+.currency-hebrew {
+  direction: rtl;
+  text-align: center;
+  unicode-bidi: embed;
+}
+
+/* Table RTL support */
+.table-rtl {
+  direction: rtl;
+}
+
+.table-rtl th,
+.table-rtl td {
+  text-align: right;
+}
+
+.table-rtl th:first-child,
+.table-rtl td:first-child {
+  text-align: right;
+  border-right: none;
+}
+
+.table-rtl th:last-child,
+.table-rtl td:last-child {
+  border-left: none;
+}
+
+/* Sticky column RTL support */
+.sticky-right {
+  position: sticky;
+  right: 0;
+  background: white;
+  z-index: 10;
+  border-left: 1px solid hsl(var(--border));
+}
+
+/* Mixed content (Hebrew + numbers) */
+.mixed-content {
+  direction: rtl;
+  unicode-bidi: bidi-override;
+}
+
+.mixed-content .number {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
+
+/* Status indicators with RTL */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  direction: rtl;
+}
+
+/* Form controls RTL */
+.form-rtl .select-trigger {
+  text-align: right;
+}
+
+.form-rtl .select-content {
+  direction: rtl;
+}
+
+/* Card headers with RTL */
+.card-header-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.card-header-rtl .flex {
+  flex-direction: row-reverse;
+}
+
+/* Button groups RTL */
+.button-group-rtl {
+  direction: rtl;
+}
+
+.button-group-rtl .flex {
+  flex-direction: row-reverse;
+}
+
+/* Navigation RTL */
+.nav-rtl {
+  direction: rtl;
+}
+
+.nav-rtl .flex {
+  flex-direction: row-reverse;
+}
+
+/* Error messages RTL */
+.error-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Loading states RTL */
+.loading-rtl {
+  direction: rtl;
+}
+
+.loading-rtl .flex {
+  flex-direction: row-reverse;
+}
+
+/* Responsive RTL adjustments */
+@media (max-width: 768px) {
+  .hebrew-text {
+    font-size: 0.9rem;
+  }
+  
+  .table-rtl {
+    font-size: 0.85rem;
+  }
+  
+  .sticky-right {
+    min-width: 80px;
+  }
+}
+
+/* Print styles for Hebrew */
+@media print {
+  .hebrew-text {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  .table-rtl {
+    direction: rtl;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .sticky-right {
+    border-left: 2px solid;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .loading-rtl * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

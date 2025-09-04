@@ -1,65 +1,35 @@
 // Hebrew utility functions for building management dashboard
+// This file is deprecated - use lib/formatters/index.ts and lib/constants/hebrew.ts instead
 
-export const HEBREW_MONTHS = [
-  "ינואר",
-  "פברואר",
-  "מרץ",
-  "אפריל",
-  "מאי",
-  "יוני",
-  "יולי",
-  "אוגוסט",
-  "ספטמבר",
-  "אוקטובר",
-  "נובמבר",
-  "דצמבר",
-]
+import { 
+  formatCurrency as newFormatCurrency,
+  formatPaymentStatus,
+  formatHebrewDate as newFormatHebrewDate,
+  formatShortHebrewDate as newFormatShortHebrewDate,
+  formatApartmentNumber as newFormatApartmentNumber
+} from '@/lib/formatters'
+import { HEBREW_MONTHS } from '@/lib/constants/hebrew'
+
+// Re-export from new centralized formatters for backward compatibility
+export { HEBREW_MONTHS }
 
 export function formatCurrency(amount: string | number): string {
-  const numAmount = typeof amount === "string" ? Number.parseFloat(amount) || 0 : amount
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(numAmount)
+  return newFormatCurrency(typeof amount === "string" ? Number.parseFloat(amount) || 0 : amount)
 }
 
 export function getPaymentStatus(value: string): { icon: string; color: string } {
-  const normalizedValue = value.toLowerCase().trim()
-
-  if (normalizedValue === "✓" || normalizedValue === "true" || normalizedValue === "שולם" || normalizedValue === "כן") {
-    return { icon: "✓", color: "text-green-600" }
-  } else if (
-    normalizedValue === "✗" ||
-    normalizedValue === "false" ||
-    normalizedValue === "לא שולם" ||
-    normalizedValue === "לא"
-  ) {
-    return { icon: "✗", color: "text-red-600" }
-  } else if (normalizedValue === "ממתין" || normalizedValue === "pending") {
-    return { icon: "⏳", color: "text-yellow-600" }
-  } else {
-    return { icon: "?", color: "text-gray-400" }
-  }
+  const status = formatPaymentStatus(value)
+  return { icon: status.icon, color: status.color }
 }
 
 export function formatHebrewDate(date: Date): string {
-  const day = date.getDate()
-  const month = HEBREW_MONTHS[date.getMonth()]
-  const year = date.getFullYear()
-
-  return `${day} ${month} ${year}`
+  return newFormatHebrewDate(date)
 }
 
 export function formatShortHebrewDate(date: Date): string {
-  const day = date.getDate().toString().padStart(2, "0")
-  const month = (date.getMonth() + 1).toString().padStart(2, "0")
-  const year = date.getFullYear().toString().slice(-2)
-
-  return `${day}/${month}/${year}`
+  return newFormatShortHebrewDate(date)
 }
 
 export function formatApartmentNumber(num: number): string {
-  return `דירה ${num}`
+  return newFormatApartmentNumber(num)
 }

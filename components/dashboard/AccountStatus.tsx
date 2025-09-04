@@ -1,15 +1,71 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatCurrency, formatHebrewDate } from "@/lib/hebrew-utils"
-import { useAccountStatus } from "@/hooks/use-sheets-data"
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
+import { formatCurrency, formatHebrewDate } from "@/lib/formatters"
+import { ACCOUNT_STATUS_TEXTS } from "@/lib/constants/hebrew"
+import { ErrorDisplay, ConnectionStatus } from "@/components/ui/error-display"
+import { LoadingSpinner, RefreshIndicator } from "@/components/ui/loading-states"
+import type { AccountStatusData, ApiResponse, ErrorState } from "@/lib/types/api"
 
 export function AccountStatus() {
-  const { data: accountData, isLoading, error, isConnected } = useAccountStatus()
+  const [response, setResponse] = useState<ApiResponse<AccountStatusData> | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<ErrorState | null>(null)
 
-  if (isLoading) {
+  const fetchData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/sheets/account-status')
+      const result: ApiResponse<AccountStatusData> = await res.json()
+      
+      if (!res.ok) {
+        setError(result.error || null)
+      } else {
+        setResponse(result)
+      }
+    } catch (err) {
+      console.error("Account status fetch error:", err)
+      setError({
+        type: 'network_error',
+        message: err instanceof Error ? err.message : 'Unknown error',
+        hebrewMessage: 'שגיאת רשת - בדוק את החיבור לאינטרנט',
+        canRetry: true
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRetry = () => {
+    fetchData()
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <Card className="relative overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg hebrew-text">מצב חשבון הבניין</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadingSpinner size="lg" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return <ErrorDisplay error={error} onRetry={handleRetry} />
+  }
+
+  if (!response) {
     return (
       <Card className="relative overflow-hidden">
         <CardHeader>
@@ -17,65 +73,29 @@ export function AccountStatus() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground hebrew-text mt-2">טוען נתונים...</p>
+            <p className="text-sm text-muted-foreground hebrew-text">אין נתונים זמינים</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (error || !accountData) {
-    return (
-      <Card className="relative overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-lg hebrew-text">מצב חשבון הבניין</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <p className="text-sm text-destructive hebrew-text">שגיאה בטעינת הנתונים</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
+  const { data: accountData, meta } = response
   const balance = accountData.balance || 0
-  const lastUpdated = accountData.lastUpdated ? new Date(accountData.lastUpdated) : new Date()
+  const lastUpdated = new Date(accountData.lastUpdated)
   const monthlyChange = accountData.monthlyChange || 0
-
-  const getStatus = () => {
-    if (balance > 10000) return "healthy"
-    if (balance > 5000) return "warning"
-    return "critical"
-  }
-
-  const status = getStatus()
+  const status = accountData.status
 
   const getStatusColor = () => {
     switch (status) {
       case "healthy":
-        return "bg-success text-success-foreground"
+        return "bg-green-100 text-green-800"
       case "warning":
-        return "bg-accent text-accent-foreground"
+        return "bg-yellow-100 text-yellow-800"
       case "critical":
-        return "bg-destructive text-destructive-foreground"
+        return "bg-red-100 text-red-800"
       default:
-        return "bg-muted text-muted-foreground"
-    }
-  }
-
-  const getStatusText = () => {
-    switch (status) {
-      case "healthy":
-        return "מצב תקין"
-      case "warning":
-        return "דורש תשומת לב"
-      case "critical":
-        return "מצב קריטי"
-      default:
-        return "לא ידוע"
+        return "bg-gray-100 text-gray-800"
     }
   }
 
@@ -102,27 +122,33 @@ export function AccountStatus() {
           <Badge className={getStatusColor()}>
             <div className="flex items-center gap-1">
               {getStatusIcon()}
-              <span className="hebrew-text">{getStatusText()}</span>
+              <span className="hebrew-text">{ACCOUNT_STATUS_TEXTS[status]}</span>
             </div>
           </Badge>
         </div>
+        <ConnectionStatus 
+          isConnected={meta.isConnected} 
+          source={meta.source}
+        />
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Main Balance */}
         <div className="text-center space-y-2">
-          <div className="text-3xl font-bold currency-hebrew text-primary">{formatCurrency(balance)}</div>
+          <div className="text-3xl font-bold currency-hebrew text-primary">
+            {formatCurrency(balance)}
+          </div>
           <p className="text-sm text-muted-foreground hebrew-text">יתרה נוכחית בחשבון הבניין</p>
         </div>
 
         {/* Monthly Change */}
         <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg">
           {monthlyChange >= 0 ? (
-            <TrendingUp className="h-4 w-4 text-success" />
+            <TrendingUp className="h-4 w-4 text-green-600" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-destructive" />
+            <TrendingDown className="h-4 w-4 text-red-600" />
           )}
-          <span className={`font-medium ${monthlyChange >= 0 ? "text-success" : "text-destructive"}`}>
+          <span className={`font-medium ${monthlyChange >= 0 ? "text-green-600" : "text-red-600"}`}>
             {monthlyChange >= 0 ? "+" : ""}
             {monthlyChange.toFixed(1)}%
           </span>
@@ -131,13 +157,15 @@ export function AccountStatus() {
 
         {/* Last Updated */}
         <div className="text-center">
-          <p className="text-xs text-muted-foreground hebrew-text">עדכון אחרון: {formatHebrewDate(lastUpdated)}</p>
-          <div className="flex items-center justify-center gap-1 mt-1">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-success" : "bg-accent"}`} />
-            <span className="text-xs text-muted-foreground hebrew-text">
-              {isConnected ? "מחובר לגוגל שיטס" : "נתונים לדוגמה"}
-            </span>
-          </div>
+          <p className="text-xs text-muted-foreground hebrew-text">
+            עדכון אחרון: {formatHebrewDate(lastUpdated)}
+          </p>
+          <RefreshIndicator
+            isRefreshing={false}
+            onRefresh={handleRetry}
+            lastUpdated={new Date(meta.lastFetched)}
+            className="mt-2 justify-center"
+          />
         </div>
       </CardContent>
     </Card>

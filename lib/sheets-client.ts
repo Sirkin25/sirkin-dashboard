@@ -82,13 +82,18 @@ class SheetsClient {
       for (const method of methods) {
         try {
           const csvData = await method()
-          if (csvData) {
+          
+          if (csvData && this.isValidCSV(csvData)) {
             const parsedData = parser(csvData)
-            return {
-              data: parsedData,
-              status: "connected",
-              lastUpdated: new Date(),
-              source: "Google Sheets CSV",
+            
+            // Only return as connected if we actually got valid parsed data
+            if (parsedData && parsedData.length > 0) {
+              return {
+                data: parsedData,
+                status: "connected",
+                lastUpdated: new Date(),
+                source: "Google Sheets CSV",
+              }
             }
           }
         } catch (error) {
@@ -172,7 +177,16 @@ class SheetsClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return await response.text()
+    const text = await response.text()
+    
+    // Check if we got HTML instead of CSV (common with private sheets)
+    if (text.trim().toLowerCase().startsWith('<html') || 
+        text.includes('Temporary Redirect') ||
+        text.includes('<title>')) {
+      throw new Error('Received HTML redirect instead of CSV data - sheet may be private')
+    }
+
+    return text
   }
 
   /**
@@ -186,7 +200,16 @@ class SheetsClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return await response.text()
+    const text = await response.text()
+    
+    // Check if we got HTML instead of CSV
+    if (text.trim().toLowerCase().startsWith('<html') || 
+        text.includes('Temporary Redirect') ||
+        text.includes('<title>')) {
+      throw new Error('Received HTML redirect instead of CSV data - sheet may not be published')
+    }
+
+    return text
   }
 
   /**
@@ -200,7 +223,38 @@ class SheetsClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    return await response.text()
+    const text = await response.text()
+    
+    // Check if we got HTML instead of CSV
+    if (text.trim().toLowerCase().startsWith('<html') || 
+        text.includes('Temporary Redirect') ||
+        text.includes('<title>')) {
+      throw new Error('Received HTML redirect instead of CSV data - sheet access denied')
+    }
+
+    return text
+  }
+
+  /**
+   * Validate if response is actually CSV data and not HTML error page
+   */
+  private isValidCSV(data: string): boolean {
+    // Check if it's HTML (common error response)
+    if (data.trim().toLowerCase().startsWith('<html') || 
+        data.trim().toLowerCase().startsWith('<!doctype') ||
+        data.includes('<title>') ||
+        data.includes('Temporary Redirect')) {
+      return false
+    }
+    
+    // Check if it has some CSV-like structure
+    const lines = data.split('\n').filter(line => line.trim())
+    if (lines.length < 1) {
+      return false
+    }
+    
+    // Should have at least some commas or data
+    return lines.some(line => line.includes(',') || line.trim().length > 0)
   }
 
   /**

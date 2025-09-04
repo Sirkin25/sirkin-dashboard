@@ -4,113 +4,145 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getPaymentStatus, HEBREW_MONTHS } from "@/lib/utils-hebrew"
-import { Loader2, AlertCircle, CheckCircle, Filter } from "lucide-react"
-
-interface TenantPaymentData {
-  apartment: string
-  [key: `month_${number}`]: string // month_1, month_2, ..., month_12
-}
-
-interface ApiResponse {
-  data: TenantPaymentData[]
-  source: "mock" | "sheets"
-  message: string
-  year: number
-  halfYear: 1 | 2
-}
+import { Filter } from "lucide-react"
+import { HEBREW_MONTHS } from "@/lib/constants/hebrew"
+import { formatPaymentStatus } from "@/lib/formatters"
+import { ErrorDisplay, ConnectionStatus } from "@/components/ui/error-display"
+import { LoadingSpinner, RefreshIndicator } from "@/components/ui/loading-states"
+import type { TenantPaymentsResponse, ApiResponse, ErrorState } from "@/lib/types/api"
 
 export function TenantPayments() {
-  const [response, setResponse] = useState<ApiResponse | null>(null)
+  const [response, setResponse] = useState<ApiResponse<TenantPaymentsResponse> | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  // Determine current half-year: 1 for Jan-Jun, 2 for Jul-Dec
-  const initialHalfYear = new Date().getMonth() >= 6 ? 2 : 1
+  const [error, setError] = useState<ErrorState | null>(null)
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1 // 1-12
+  const [selectedYear, setSelectedYear] = useState(currentYear)
+  const initialHalfYear = currentMonth >= 7 ? 2 : 1 // Jul-Dec = 2, Jan-Jun = 1
   const [selectedHalfYear, setSelectedHalfYear] = useState<1 | 2>(initialHalfYear)
 
-  const fetchData = async (year: number) => {
+  const fetchData = async (year: number, halfYear: 1 | 2) => {
     setLoading(true)
+    setError(null)
     try {
-      // API now returns full year data for the selected year
-      const res = await fetch(`/api/sheets/tenant-payments?year=${year}`)
-      if (!res.ok) throw new Error("Failed to fetch")
-      const result = await res.json()
-      setResponse(result)
+      const res = await fetch(`/api/sheets/tenant-payments?year=${year}&halfYear=${halfYear}`)
+      const result: ApiResponse<TenantPaymentsResponse> = await res.json()
+      
+      if (!res.ok) {
+        setError(result.error || {
+          type: 'unknown_error',
+          message: 'API request failed',
+          hebrewMessage: 'שגיאה לא ידועה',
+          canRetry: true
+        })
+      } else {
+        setResponse(result)
+      }
     } catch (err) {
       console.error("Tenant Payments Fetch Error:", err)
-      // Generate mock data for 16 apartments and 12 months
-      const mockData = Array.from({ length: 16 }, (_, i) => {
-        const row: any = { apartment: `דירה ${i + 1}` }
-        HEBREW_MONTHS.forEach((_, index) => {
-          row[`month_${index + 1}`] = Math.random() > 0.3 ? "✓" : "✗" // Use ✓/✗ for consistency
-        })
-        return row
-      })
-
-      setResponse({
-        data: mockData,
-        source: "mock",
-        message: "נתוני דוגמה - שגיאה בחיבור",
-        year,
-        halfYear: selectedHalfYear, // Keep halfYear for consistency, though it's client-side
+      setError({
+        type: 'network_error',
+        message: err instanceof Error ? err.message : 'Unknown error',
+        hebrewMessage: 'שגיאת רשת - בדוק את החיבור לאינטרנט',
+        canRetry: true
       })
     } finally {
       setLoading(false)
     }
   }
 
+  const handleRetry = () => {
+    fetchData(selectedYear, selectedHalfYear)
+  }
+
   useEffect(() => {
-    fetchData(selectedYear)
-  }, [selectedYear])
+    fetchData(selectedYear, selectedHalfYear)
+  }, [selectedYear, selectedHalfYear])
+
+
 
   if (loading) {
     return (
       <Card className="w-full">
-        <CardContent className="flex items-center justify-center p-6">
-          <Loader2 className="h-6 w-6 animate-spin ml-2" />
-          <span>טוען נתונים...</span>
+        <CardHeader>
+          <CardTitle className="text-xl font-bold text-gray-800 hebrew-text">
+            💸 סטטוס תשלומי דיירים
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadingSpinner size="lg" />
         </CardContent>
       </Card>
     )
   }
 
-  const tenants = response?.data || []
-  const source = response?.source || "mock"
-  const message = response?.message || ""
+  if (error) {
+    return <ErrorDisplay error={error} onRetry={handleRetry} />
+  }
 
-  // Determine which months to display based on selectedHalfYear
-  const displayMonthIndices = selectedHalfYear === 1 ? [0, 1, 2, 3, 4, 5] : [6, 7, 8, 9, 10, 11]
-  const displayMonthNames = displayMonthIndices.map((index) => HEBREW_MONTHS[index])
-
-  // Calculate statistics based on the displayed months
-  const totalPayments = tenants.reduce((total, tenant) => {
+  if (!response) {
     return (
-      total +
-      displayMonthIndices.reduce((monthTotal, monthIndex) => {
-        // Check the actual month_X key from the tenant object
-        return monthTotal + (tenant[`month_${monthIndex + 1}`] === "✓" ? 1 : 0)
-      }, 0)
+      <Card className="w-full">
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground hebrew-text">אין נתונים זמינים</p>
+        </CardContent>
+      </Card>
     )
-  }, 0)
+  }
 
-  const totalPossible = tenants.length * displayMonthNames.length
-  const paymentRate = totalPossible > 0 ? ((totalPayments / totalPossible) * 100).toFixed(1) : "0"
+  const { data: paymentsData, meta } = response
+  const { data: tenants, statistics, actualMonths } = paymentsData
 
-  const currentYear = new Date().getFullYear()
+  // Always show 6 months based on traditional calendar half-year structure
+  const monthNumbers = selectedHalfYear === 1 ? [1, 2, 3, 4, 5, 6] : [7, 8, 9, 10, 11, 12] // Jan-Jun or Jul-Dec
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  
+  // Create display data for the 6 months of the selected half-year
+  const displayMonthData: { monthName: string; actualMonth: string | null; dataIndex: number | null }[] = []
+  
+  monthNumbers.forEach(monthNum => {
+    const monthName = monthNames[monthNum - 1] // Convert 1-12 to 0-11 index
+    const expectedMonthFormat = `${monthName}-${selectedYear.toString().slice(-2)}` // e.g., "Jan-25"
+    
+    // Find if we have actual data for this month
+    let actualMonth: string | null = null
+    let dataIndex: number | null = null
+    
+    if (actualMonths && actualMonths.length > 0) {
+      const foundIndex = actualMonths.findIndex(month => month === expectedMonthFormat)
+      if (foundIndex !== -1) {
+        actualMonth = actualMonths[foundIndex]
+        dataIndex = foundIndex
+      }
+    }
+    
+    displayMonthData.push({
+      monthName: expectedMonthFormat,
+      actualMonth,
+      dataIndex
+    })
+  })
+  
+  const displayMonthNames = displayMonthData.map(item => item.monthName)
+  const displayMonthIndices = displayMonthData.map(item => item.dataIndex)
+
+
+  // Always show previous year, current year, next year
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1]
 
   return (
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            💸 סטטוס תשלומי דיירים
-            {source === "sheets" ? (
-              <CheckCircle className="h-5 w-5 text-green-600" />
-            ) : (
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-            )}
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-xl font-bold text-gray-800 hebrew-text">
+              💸 סטטוס תשלומי דיירים
+            </CardTitle>
+            <ConnectionStatus 
+              isConnected={meta.isConnected} 
+              source={meta.source}
+            />
+          </div>
 
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-600" />
@@ -144,26 +176,36 @@ export function TenantPayments() {
 
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="bg-green-50 p-3 rounded-lg text-center">
-            <p className="text-sm text-gray-600">אחוז תשלומים</p>
-            <p className="text-2xl font-bold text-green-600">{paymentRate}%</p>
+            <p className="text-sm text-gray-600 hebrew-text">אחוז תשלומים</p>
+            <p className="text-2xl font-bold text-green-600">{statistics.paymentRate}%</p>
           </div>
           <div className="bg-blue-50 p-3 rounded-lg text-center">
-            <p className="text-sm text-gray-600">סה"כ תשלומים</p>
+            <p className="text-sm text-gray-600 hebrew-text">סה"כ תשלומים</p>
             <p className="text-2xl font-bold text-blue-600">
-              {totalPayments}/{totalPossible}
+              {statistics.totalPayments}/{statistics.totalPossible}
             </p>
           </div>
         </div>
+
+        <RefreshIndicator
+          isRefreshing={false}
+          onRefresh={handleRetry}
+          lastUpdated={new Date(meta.lastFetched)}
+          className="mt-2"
+        />
       </CardHeader>
+      
       <CardContent>
-        <div className="overflow-x-auto" dir="rtl">
+        <div className="overflow-x-auto table-rtl" dir="rtl">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right font-bold sticky right-0 bg-white z-10">דירה</TableHead>
-                {displayMonthNames.map((month, index) => (
-                  <TableHead key={month} className="text-center font-bold min-w-[80px]">
-                    {month} {selectedYear % 100} {/* Display year suffix in header */}
+                <TableHead className="text-right font-bold sticky-right hebrew-text">
+                  דירה
+                </TableHead>
+                {displayMonthNames.map((month) => (
+                  <TableHead key={month} className="text-center font-bold min-w-[80px] hebrew-text">
+                    {month}
                   </TableHead>
                 ))}
               </TableRow>
@@ -177,14 +219,28 @@ export function TenantPayments() {
                 }
                 return (
                   <TableRow key={index}>
-                    <TableCell className="text-right font-medium sticky right-0 bg-white z-10">{apartment}</TableCell>
-                    {displayMonthIndices.map((monthIndex) => {
-                      // Access the month data using the month_X key
-                      const rawValue = tenant[`month_${monthIndex + 1}`]
-                      const status = getPaymentStatus(rawValue?.toString().toLowerCase().trim() || "")
+                    <TableCell className="text-right font-medium sticky-right hebrew-text">
+                      {apartment}
+                    </TableCell>
+                    {displayMonthIndices.map((monthIndex, i) => {
+                      let rawValue = ""
+                      
+                      if (monthIndex !== null) {
+                        // We have actual data for this month
+                        const monthKey = `month_${monthIndex + 1}` as keyof typeof tenant
+                        rawValue = tenant[monthKey] as string
+                      }
+                      // If monthIndex is null, rawValue stays empty, which will show ✗
+                      
+                      const status = formatPaymentStatus(rawValue?.toString().toLowerCase().trim() || "")
                       return (
-                        <TableCell key={monthIndex} className="text-center">
-                          <span className={`text-lg ${status.color}`}>{status.icon}</span>
+                        <TableCell key={i} className="text-center">
+                          <span 
+                            className={`text-lg ${status.color}`}
+                            title={status.text}
+                          >
+                            {status.icon}
+                          </span>
                         </TableCell>
                       )
                     })}
@@ -196,7 +252,9 @@ export function TenantPayments() {
         </div>
 
         <div className="text-center text-sm text-gray-500 mt-4 pt-4 border-t">
-          <p className={source === "sheets" ? "text-green-600" : "text-amber-600"}>{message}</p>
+          <p className={`hebrew-text ${meta.isConnected ? "text-green-600" : "text-amber-600"}`}>
+            {meta.message}
+          </p>
         </div>
       </CardContent>
     </Card>
