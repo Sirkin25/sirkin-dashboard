@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockExpectedExpenses } from "@/lib/mock-data"
 
 const EXPECTED_EXPENSES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.EXPECTED_EXPENSES_GID || "2",
 }
 
@@ -25,45 +25,28 @@ function parseExpectedExpensesData(csvData: string): ExpectedExpenseRow[] {
 
   return dataRows
     .map((row, index) => {
-      // Your sheet format: קטגוריה, סכום מוערך, צפוי בחודש
-      const [categoryStr, amountStr, dueDateStr] = row
-
-      // Skip empty rows
-      if (!categoryStr || !amountStr) {
-        return null
-      }
+      const [descriptionStr, categoryStr, amountStr, dueDateStr, priorityStr, recurringStr] = row
 
       return {
         id: `expected-${index + 1}`,
-        description: categoryStr || "", // Using category as description for now
-        category: "הוצאות צפויות", // Default category
+        description: descriptionStr || "",
+        category: categoryStr || "כללי",
         amount: sheetsClient.parseHebrewCurrency(amountStr || "0"),
         dueDate: sheetsClient.parseHebrewDate(dueDateStr || ""),
-        priority: "medium" as const,
-        recurring: false,
+        priority: (priorityStr?.toLowerCase() as "low" | "medium" | "high") || "medium",
+        recurring: recurringStr?.toLowerCase() === "true" || recurringStr === "כן",
       }
     })
-    .filter((row) => row !== null && row.description && row.amount > 0)
+    .filter((row) => row.description && row.amount > 0)
 }
 
 export async function GET() {
   try {
-    console.log("=== Expected Expenses API Called ===")
-    console.log("Config:", EXPECTED_EXPENSES_CONFIG)
-    console.log("Environment check:")
-    console.log("- GOOGLE_SHEETS_SPREADSHEET_ID:", process.env.GOOGLE_SHEETS_SPREADSHEET_ID ? "✓" : "✗")
-    console.log("- EXPECTED_EXPENSES_GID:", process.env.EXPECTED_EXPENSES_GID ? "✓" : "✗")
-
     const result = await sheetsClient.fetchSheetData(
       EXPECTED_EXPENSES_CONFIG,
       parseExpectedExpensesData,
       mockExpectedExpenses,
     )
-
-    console.log("Fetch result:")
-    console.log("- Status:", result.status)
-    console.log("- Source:", result.source)
-    console.log("- Data length:", result.data.length)
 
     return NextResponse.json({
       expenses: result.data,

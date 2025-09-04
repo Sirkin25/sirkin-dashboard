@@ -26,18 +26,27 @@ export default function HomePage() {
   const isLoading =
     accountStatus.loading || monthlyExpenses.loading || expectedExpenses.loading || tenantPayments.loading
 
-  const totalMonthlyExpenses = monthlyExpenses.data?.expenses.reduce((sum, exp) => sum + exp.amount, 0) || 0
-  const paidPayments = tenantPayments.data?.payments.filter((p) => p.status === "paid").length || 0
-  const overduePayments = tenantPayments.data?.payments.filter((p) => p.status === "overdue").length || 0
-  const totalPayments = tenantPayments.data?.payments.length || 1
+  const totalMonthlyExpenses = monthlyExpenses.data?.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0
+  const paidPayments = tenantPayments.data?.payments?.filter((p) => p.status === "paid").length || 0
+  const overduePayments = tenantPayments.data?.payments?.filter((p) => p.status === "overdue").length || 0
+  const totalPayments = tenantPayments.data?.payments?.length || 1
   const paymentPercentage = Math.round((paidPayments / totalPayments) * 100)
-  const totalMonthlyIncome = tenantPayments.data?.payments.reduce((sum, p) => sum + p.monthlyFee, 0) || 0
+  const totalMonthlyIncome = tenantPayments.data?.payments?.reduce((sum, p) => sum + p.monthlyFee, 0) || 0
   const urgentExpenses =
-    expectedExpenses.data?.expenses.filter((exp) => {
+    expectedExpenses.data?.expenses?.filter((exp) => {
       const daysUntilDue = Math.ceil((new Date(exp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       return daysUntilDue <= 30
     }).length || 0
-  const totalExpectedExpenses = expectedExpenses.data?.expenses.reduce((sum, exp) => sum + exp.amount, 0) || 0
+  const totalExpectedExpenses = expectedExpenses.data?.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0
+
+  const getConnectionStatus = () => {
+    const connections = [accountStatus, monthlyExpenses, expectedExpenses, tenantPayments]
+    const connectedCount = connections.filter((conn) => conn.isConnected).length
+    const totalCount = connections.length
+    return { connectedCount, totalCount, isFullyConnected: connectedCount === totalCount }
+  }
+
+  const connectionStatus = getConnectionStatus()
 
   return (
     <DashboardLayout currentPage="dashboard">
@@ -67,8 +76,19 @@ export default function HomePage() {
               {totalPayments} דירות נטענו
             </span>
             <span className="text-sm text-gray-600 hebrew-text">
-              עודכן: {accountStatus.data ? formatHebrewDate(accountStatus.data.lastUpdated) : "לא זמין"}
+              עודכן:{" "}
+              {accountStatus.data?.lastFetched ? formatHebrewDate(new Date(accountStatus.data.lastFetched)) : "לא זמין"}
             </span>
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full ${connectionStatus.isFullyConnected ? "bg-green-500" : "bg-yellow-500"}`}
+              />
+              <span className="text-xs text-gray-600 hebrew-text">
+                {connectionStatus.isFullyConnected
+                  ? "מחובר לגוגל שיטס"
+                  : `${connectionStatus.connectedCount}/${connectionStatus.totalCount} מחובר`}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -93,7 +113,7 @@ export default function HomePage() {
                         (accountStatus.data?.balance || 0) >= 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {accountStatus.data ? formatCurrency(accountStatus.data.balance) : "₪0"}
+                      {accountStatus.data?.balance !== undefined ? formatCurrency(accountStatus.data.balance) : "₪0"}
                     </div>
                     <div className="text-sm text-gray-600 hebrew-text">
                       הכנסות: {formatCurrency(totalMonthlyIncome)} | הוצאות: {formatCurrency(totalMonthlyExpenses)}
@@ -146,7 +166,7 @@ export default function HomePage() {
                       (accountStatus.data?.balance || 0) >= 0 ? "text-cyan-900" : "text-red-600"
                     }`}
                   >
-                    {accountStatus.data ? formatCurrency(accountStatus.data.balance) : "₪0"}
+                    {accountStatus.data?.balance !== undefined ? formatCurrency(accountStatus.data.balance) : "₪0"}
                   </div>
                   <div className="text-xs text-cyan-600 hebrew-text">יתרה נוכחית בקופת הבניין</div>
                 </>

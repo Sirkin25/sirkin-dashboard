@@ -7,10 +7,10 @@ export async function GET() {
       privateKeyLength: process.env.GOOGLE_PRIVATE_KEY?.length || 0,
       privateKeyStartsCorrectly: process.env.GOOGLE_PRIVATE_KEY?.startsWith("-----BEGIN PRIVATE KEY-----"),
       privateKeyEndsCorrectly: process.env.GOOGLE_PRIVATE_KEY?.endsWith("-----END PRIVATE KEY-----"),
-      hasClientEmail: !!process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-      clientEmail: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-      hasSpreadsheetId: !!process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
-      spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
+      hasClientEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      hasSpreadsheetId: !!process.env.GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       gids: {
         apartmentFees: process.env.APARTMENT_FEES_GID,
         tenantPayments: process.env.TENANT_PAYMENTS_GID,
@@ -38,7 +38,7 @@ export async function GET() {
 
       // Try to get spreadsheet metadata
       const spreadsheet = await sheets.spreadsheets.get({
-        spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
+        spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       })
 
       connectionTest = {
@@ -92,7 +92,7 @@ function getRecommendations(envCheck: any, connectionTest: any): string[] {
   }
 
   if (!envCheck.hasSpreadsheetId) {
-    recommendations.push("Missing GOOGLE_SHEETS_SPREADSHEET_ID environment variable")
+    recommendations.push("Missing GOOGLE_SHEETS_ID environment variable")
   }
 
   if (connectionTest && !connectionTest.success) {

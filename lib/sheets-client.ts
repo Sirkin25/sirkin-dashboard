@@ -258,7 +258,6 @@ class SheetsClient {
       /(\d{1,2})\/(\d{1,2})\/(\d{4})/, // DD/MM/YYYY
       /(\d{1,2})-(\d{1,2})-(\d{4})/, // DD-MM-YYYY
       /(\d{4})-(\d{1,2})-(\d{1,2})/, // YYYY-MM-DD
-      /^([A-Za-z]{3})-(\d{2})$/, // Jul-25 format
     ]
 
     for (const format of formats) {
@@ -272,13 +271,6 @@ class SheetsClient {
           day = Number.parseInt(first)
           month = Number.parseInt(second) - 1 // Month is 0-indexed
           year = Number.parseInt(third)
-        } else if (format === formats[3]) {
-          // Jul-25 format
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-          month = monthNames.indexOf(first)
-          if (month === -1) month = 0 // Default to January if not found
-          year = 2000 + Number.parseInt(second) // Convert 25 to 2025
-          day = 1 // Default to first day of month
         } else {
           // YYYY-MM-DD format
           year = Number.parseInt(first)
