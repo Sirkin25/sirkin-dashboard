@@ -3,17 +3,56 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatHebrewDate } from "@/lib/hebrew-utils"
+import { useAccountStatus } from "@/hooks/use-sheets-data"
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
 
-interface AccountStatusProps {
-  balance: number
-  lastUpdated: Date
-  monthlyChange: number
-  status: "healthy" | "warning" | "critical"
-  isConnected: boolean
-}
+export function AccountStatus() {
+  const { data: accountData, isLoading, error, isConnected } = useAccountStatus()
 
-export function AccountStatus({ balance, lastUpdated, monthlyChange, status, isConnected }: AccountStatusProps) {
+  if (isLoading) {
+    return (
+      <Card className="relative overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg hebrew-text">מצב חשבון הבניין</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground hebrew-text mt-2">טוען נתונים...</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error || !accountData) {
+    return (
+      <Card className="relative overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg hebrew-text">מצב חשבון הבניין</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <p className="text-sm text-destructive hebrew-text">שגיאה בטעינת הנתונים</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const balance = accountData.balance || 0
+  const lastUpdated = accountData.lastUpdated ? new Date(accountData.lastUpdated) : new Date()
+  const monthlyChange = accountData.monthlyChange || 0
+
+  const getStatus = () => {
+    if (balance > 10000) return "healthy"
+    if (balance > 5000) return "warning"
+    return "critical"
+  }
+
+  const status = getStatus()
+
   const getStatusColor = () => {
     switch (status) {
       case "healthy":

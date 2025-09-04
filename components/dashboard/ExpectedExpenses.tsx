@@ -2,29 +2,62 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { formatCurrency, formatShortHebrewDate } from "@/lib/hebrew-utils"
-import { ensureDate, getDaysUntilDate, isDateUrgent, formatDaysUntilDue } from "@/lib/date-utils"
+import { useExpectedExpenses } from "@/hooks/use-sheets-data"
 import { Calendar, Clock, AlertCircle } from "lucide-react"
 
-interface ExpectedExpense {
-  id: string
-  description: string
-  category: string
-  amount: number
-  dueDate: Date | string
-  priority: "low" | "medium" | "high"
-  recurring: boolean
-}
+export function ExpectedExpenses() {
+  const { data: expensesData, isLoading, error, isConnected } = useExpectedExpenses()
 
-interface ExpectedExpensesProps {
-  expenses: ExpectedExpense[]
-  onMarkAsPaid?: (id: string) => void
-}
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="hebrew-text flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            הוצאות צפויות
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground hebrew-text mt-2">טוען נתונים...</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
-export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesProps) {
-  const totalExpected = expenses.reduce((sum, expense) => sum + expense.amount, 0)
-  const urgentExpenses = expenses.filter((expense) => isDateUrgent(expense.dueDate))
+  if (error || !expensesData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="hebrew-text flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            הוצאות צפויות
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <p className="text-sm text-destructive hebrew-text">שגיאה בטעינת הנתונים</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const expenses = expensesData.expenses || []
+  const totalExpected = expenses.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0)
+
+  const urgentExpenses = expenses.filter((expense: any) => {
+    if (!expense.dueDate) return false
+    const dueDate = new Date(expense.dueDate)
+    const today = new Date()
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays <= 7 && diffDays >= 0
+  })
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -52,7 +85,18 @@ export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesPro
     }
   }
 
+  const formatDaysUntilDue = (dueDate: string) => {
+    const due = new Date(dueDate)
+    const today = new Date()
+    const diffTime = due.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
+    if (diffDays < 0) return "פג תוקף"
+    if (diffDays === 0) return "היום"
+    if (diffDays === 1) return "מחר"
+    if (diffDays <= 7) return `בעוד ${diffDays} ימים`
+    return `בעוד ${Math.ceil(diffDays / 7)} שבועות`
+  }
 
   return (
     <Card>
@@ -85,52 +129,40 @@ export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesPro
               <p className="hebrew-text">אין הוצאות צפויות</p>
             </div>
           ) : (
-            expenses.map((expense) => {
-              const daysUntilDue = getDaysUntilDate(expense.dueDate)
-              const isUrgent = isDateUrgent(expense.dueDate)
+            expenses.map((expense: any, index: number) => {
+              const isUrgent = urgentExpenses.includes(expense)
 
               return (
                 <div
-                  key={expense.id}
+                  key={expense.id || index}
                   className={`p-3 rounded-lg border ${isUrgent ? "border-destructive/20 bg-destructive/5" : "bg-muted/50"}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium hebrew-text">{expense.description}</span>
+                        <span className="font-medium hebrew-text">{expense.description || expense.category}</span>
                         <Badge variant="outline" className="text-xs">
                           {expense.category}
                         </Badge>
-                        {expense.recurring && (
-                          <Badge variant="secondary" className="text-xs hebrew-text">
-                            חוזר
-                          </Badge>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="hebrew-text">{formatShortHebrewDate(ensureDate(expense.dueDate))}</span>
-                        <span className={`hebrew-text ${isUrgent ? "text-destructive font-medium" : ""}`}>
-                          {formatDaysUntilDue(expense.dueDate)}
-                        </span>
-                        <Badge className={getPriorityColor(expense.priority)} variant="secondary">
-                          <span className="hebrew-text">{getPriorityText(expense.priority)}</span>
+                        {expense.dueDate && (
+                          <>
+                            <span className="hebrew-text">{formatShortHebrewDate(new Date(expense.dueDate))}</span>
+                            <span className={`hebrew-text ${isUrgent ? "text-destructive font-medium" : ""}`}>
+                              {formatDaysUntilDue(expense.dueDate)}
+                            </span>
+                          </>
+                        )}
+                        <Badge className={getPriorityColor(expense.priority || "low")} variant="secondary">
+                          <span className="hebrew-text">{getPriorityText(expense.priority || "low")}</span>
                         </Badge>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold currency-hebrew">{formatCurrency(expense.amount)}</span>
-                      {onMarkAsPaid && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onMarkAsPaid(expense.id)}
-                          className="hebrew-text"
-                        >
-                          סמן כשולם
-                        </Button>
-                      )}
+                      <span className="font-semibold currency-hebrew">{formatCurrency(expense.amount || 0)}</span>
                     </div>
                   </div>
                 </div>
