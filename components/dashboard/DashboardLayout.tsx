@@ -12,32 +12,7 @@ interface DashboardLayoutProps {
   currentPage?: string
 }
 
-const navigationItems = [
-  {
-    id: "dashboard",
-    label: "סקירה כללית",
-    icon: Home,
-    href: "/",
-  },
-  {
-    id: "expenses",
-    label: "פירוט הוצאות",
-    icon: FileText,
-    href: "/expenses",
-  },
-  {
-    id: "payments",
-    label: "תשלומים",
-    icon: CreditCard,
-    href: "/payments",
-  },
-  {
-    id: "reports",
-    label: "דוחות",
-    icon: BarChart3,
-    href: "/reports",
-  },
-]
+// No separate navigation items - using tabs in main page instead
 
 export function DashboardLayout({ children, currentPage = "dashboard" }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -93,30 +68,7 @@ export function DashboardLayout({ children, currentPage = "dashboard" }: Dashboa
           </div>
         </div>
 
-        <div className="border-t bg-white px-6">
-          <nav className="flex space-x-8" dir="rtl">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              const isActive = activePage === item.id
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigation(item.href)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-4 text-sm font-medium border-b-2 transition-colors hebrew-text",
-                    isActive
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
       </header>
 
       <main className="p-6">

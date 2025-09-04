@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockApartmentFees } from "@/lib/mock-data"
 
 const APARTMENT_FEES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.APARTMENT_FEES_GID || "4",
 }
 
@@ -24,40 +24,41 @@ interface ApartmentFeeRow {
 function parseApartmentFeesData(csvData: string): ApartmentFeeRow[] {
   const rows = sheetsClient.parseCSV(csvData)
 
-  // Skip header row
-  const dataRows = rows.slice(1)
+  // Skip header row and summary row at the end
+  const dataRows = rows.slice(1).filter(row => {
+    const firstCol = row[0]
+    return firstCol && !firstCol.includes('סה״כ') && !firstCol.includes('תקציב') && !firstCol.includes('ממוצע')
+  })
 
   return dataRows
     .map((row) => {
-      const [
-        aptNumStr,
-        ownerStr,
-        sizeStr,
-        baseStr,
-        maintenanceStr,
-        elevatorStr,
-        cleaningStr,
-        insuranceStr,
-        totalStr,
-        specialStr,
-        typeStr,
-      ] = row
+      // Your sheet format: מספר דירה,תת חלקה,מ״ר בטאבו,סכום לחודש
+      const [aptNumStr, subParcelStr, sizeStr, monthlyFeeStr] = row
+
+      const aptNum = Number.parseInt(aptNumStr || "0")
+      const size = Number.parseFloat(sizeStr || "0")
+      const monthlyFee = sheetsClient.parseHebrewCurrency(monthlyFeeStr || "0")
+
+      // Skip invalid rows
+      if (aptNum <= 0 || monthlyFee <= 0) {
+        return null
+      }
 
       return {
-        apartmentNumber: Number.parseInt(aptNumStr || "0"),
-        ownerName: ownerStr || "",
-        apartmentSize: Number.parseFloat(sizeStr || "0"),
-        baseFee: sheetsClient.parseHebrewCurrency(baseStr || "0"),
-        maintenanceFee: sheetsClient.parseHebrewCurrency(maintenanceStr || "0"),
-        elevatorFee: sheetsClient.parseHebrewCurrency(elevatorStr || "0"),
-        cleaningFee: sheetsClient.parseHebrewCurrency(cleaningStr || "0"),
-        insuranceFee: sheetsClient.parseHebrewCurrency(insuranceStr || "0"),
-        totalMonthlyFee: sheetsClient.parseHebrewCurrency(totalStr || "0"),
-        specialAssessments: sheetsClient.parseHebrewCurrency(specialStr || "0"),
-        feeType: typeStr?.toLowerCase() === "renter" || typeStr === "שוכר" ? "renter" : "owner",
+        apartmentNumber: aptNum,
+        ownerName: `בעל דירה ${aptNum}`, // "Apartment Owner X"
+        apartmentSize: size,
+        baseFee: monthlyFee * 0.6, // Estimate breakdown
+        maintenanceFee: monthlyFee * 0.2,
+        elevatorFee: monthlyFee * 0.1,
+        cleaningFee: monthlyFee * 0.05,
+        insuranceFee: monthlyFee * 0.05,
+        totalMonthlyFee: monthlyFee,
+        specialAssessments: 0,
+        feeType: "owner" as const,
       }
     })
-    .filter((row) => row.apartmentNumber > 0 && row.ownerName)
+    .filter((row) => row !== null)
 }
 
 export async function GET() {

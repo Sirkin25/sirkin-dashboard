@@ -224,7 +224,7 @@ export default function HomePage() {
               <div className="space-y-3">
                 {monthlyExpenses.data?.expenses?.slice(0, 5).map((expense, index) => (
                   <div key={index} className="flex justify-between items-center">
-                    <span className="hebrew-text">{expense.category}</span>
+                    <span className="hebrew-text">{expense.description}</span>
                     <span className="font-semibold currency-hebrew">{formatCurrency(expense.amount)}</span>
                   </div>
                 )) || <div className="text-gray-500 hebrew-text">אין נתונים זמינים</div>}
@@ -252,8 +252,8 @@ export default function HomePage() {
                 {expectedExpenses.data?.expenses?.slice(0, 5).map((expense, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <div>
-                      <span className="hebrew-text">{expense.category}</span>
-                      <div className="text-xs text-gray-500 hebrew-text">{expense.expectedMonth}</div>
+                      <span className="hebrew-text">{expense.description}</span>
+                      <div className="text-xs text-gray-500 hebrew-text">{expense.category}</div>
                     </div>
                     <span className="font-semibold currency-hebrew">{formatCurrency(expense.amount)}</span>
                   </div>

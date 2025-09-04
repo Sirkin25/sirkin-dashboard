@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockTenantPayments } from "@/lib/mock-data"
 
 const TENANT_PAYMENTS_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.TENANT_PAYMENTS_GID || "3",
 }
 
@@ -20,26 +20,38 @@ interface TenantPaymentRow {
 
 function parseTenantPaymentsData(csvData: string): TenantPaymentRow[] {
   const rows = sheetsClient.parseCSV(csvData)
-
-  // Skip header row
-  const dataRows = rows.slice(1)
-
-  return dataRows
-    .map((row) => {
-      const [aptNumStr, nameStr, feeStr, lastPaymentStr, statusStr, phoneStr, emailStr, balanceStr] = row
-
-      return {
-        apartmentNumber: Number.parseInt(aptNumStr || "0"),
-        tenantName: nameStr || "",
-        monthlyFee: sheetsClient.parseHebrewCurrency(feeStr || "0"),
-        lastPaymentDate: lastPaymentStr ? sheetsClient.parseHebrewDate(lastPaymentStr) : null,
-        status: (statusStr?.toLowerCase() as "paid" | "pending" | "overdue") || "pending",
-        phone: phoneStr || undefined,
-        email: emailStr || undefined,
-        balance: sheetsClient.parseHebrewCurrency(balanceStr || "0"),
-      }
-    })
-    .filter((row) => row.apartmentNumber > 0 && row.tenantName)
+  
+  if (rows.length < 2) return []
+  
+  // First row has apartment numbers: דירה/חודש,1,2,3,4,5,6,7,8,9,10,11,12
+  const headerRow = rows[0]
+  const apartmentNumbers = headerRow.slice(1) // Skip first column "דירה/חודש"
+  
+  // Get the most recent month's data (second row)
+  const latestMonthRow = rows[1]
+  const monthName = latestMonthRow[0] // e.g., "Jul-25"
+  const paymentStatuses = latestMonthRow.slice(1) // TRUE/FALSE values
+  
+  // Convert to tenant payment records
+  const tenantPayments: TenantPaymentRow[] = []
+  
+  for (let i = 0; i < apartmentNumbers.length && i < paymentStatuses.length; i++) {
+    const aptNum = Number.parseInt(apartmentNumbers[i])
+    const isPaid = paymentStatuses[i]?.toUpperCase() === 'TRUE'
+    
+    if (aptNum > 0) {
+      tenantPayments.push({
+        apartmentNumber: aptNum,
+        tenantName: `דירה ${aptNum}`, // "Apartment X"
+        monthlyFee: 120, // Default fee, could be calculated from apartment fees sheet
+        lastPaymentDate: isPaid ? new Date() : null,
+        status: isPaid ? "paid" : "pending",
+        balance: isPaid ? 0 : 120,
+      })
+    }
+  }
+  
+  return tenantPayments
 }
 
 export async function GET() {

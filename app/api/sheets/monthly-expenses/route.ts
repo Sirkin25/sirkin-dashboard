@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockExpenses } from "@/lib/mock-data"
 
 const MONTHLY_EXPENSES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.MONTHLY_EXPENSES_GID || "1",
 }
 
@@ -24,18 +24,24 @@ function parseMonthlyExpensesData(csvData: string): ExpenseRow[] {
 
   return dataRows
     .map((row, index) => {
-      const [descriptionStr, categoryStr, amountStr, dateStr, statusStr] = row
+      // Your sheet format: תאריך,קטוגריה,סכום (Date, Category, Amount)
+      const [dateStr, categoryStr, amountStr] = row
+
+      // Skip empty rows
+      if (!categoryStr || !amountStr) {
+        return null
+      }
 
       return {
         id: `expense-${index + 1}`,
-        description: descriptionStr || "",
+        description: categoryStr || "", // Using category as description
         category: categoryStr || "כללי",
         amount: sheetsClient.parseHebrewCurrency(amountStr || "0"),
         date: sheetsClient.parseHebrewDate(dateStr || ""),
-        status: (statusStr?.toLowerCase() as "paid" | "pending" | "overdue") || "pending",
+        status: "paid" as const, // Default to paid since these are recorded expenses
       }
     })
-    .filter((row) => row.description && row.amount > 0)
+    .filter((row) => row !== null && row.description && row.amount > 0)
 }
 
 export async function GET() {

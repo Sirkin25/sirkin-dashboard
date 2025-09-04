@@ -35,10 +35,11 @@ export function useSheetData<T>(
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }))
 
-      const response = await fetch(`/api/sheets/${endpoint}`, {
+      const response = await fetch(`/api/sheets/${endpoint}?t=${Date.now()}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
       })
 
