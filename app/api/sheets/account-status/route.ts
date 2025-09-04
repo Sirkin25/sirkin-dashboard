@@ -4,7 +4,7 @@ import { mockAccountStatus } from "@/lib/mock-data"
 
 // Sheet configuration for account status
 const ACCOUNT_STATUS_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.ACCOUNT_STATUS_GID || "0",
 }
 

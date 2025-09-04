@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockTenantPayments } from "@/lib/mock-data"
 
 const TENANT_PAYMENTS_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.TENANT_PAYMENTS_GID || "3",
 }
 
