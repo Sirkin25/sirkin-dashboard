@@ -1,185 +1,202 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { formatCurrency, formatApartmentNumber, formatShortHebrewDate } from "@/lib/hebrew-utils"
-import { Users, CheckCircle, Clock, AlertTriangle, Phone, Mail } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getPaymentStatus, HEBREW_MONTHS } from "@/lib/utils-hebrew"
+import { Loader2, AlertCircle, CheckCircle, Filter } from "lucide-react"
 
-interface TenantPayment {
-  apartmentNumber: number
-  tenantName: string
-  monthlyFee: number
-  lastPaymentDate: Date | null
-  status: "paid" | "pending" | "overdue"
-  phone?: string
-  email?: string
-  balance: number
+interface TenantPaymentData {
+  apartment: string
+  [key: `month_${number}`]: string // month_1, month_2, ..., month_12
 }
 
-interface TenantPaymentsProps {
-  payments: TenantPayment[]
-  currentMonth: string
-  onContactTenant?: (apartmentNumber: number, method: "phone" | "email") => void
-  onMarkAsPaid?: (apartmentNumber: number) => void
+interface ApiResponse {
+  data: TenantPaymentData[]
+  source: "mock" | "sheets"
+  message: string
+  year: number
+  halfYear: 1 | 2
 }
 
-export function TenantPayments({ payments, currentMonth, onContactTenant, onMarkAsPaid }: TenantPaymentsProps) {
-  const paidCount = payments.filter((p) => p.status === "paid").length
-  const totalPayments = payments.length
-  const totalCollected = payments.filter((p) => p.status === "paid").reduce((sum, p) => sum + p.monthlyFee, 0)
-  const totalExpected = payments.reduce((sum, p) => sum + p.monthlyFee, 0)
+export function TenantPayments() {
+  const [response, setResponse] = useState<ApiResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  // Determine current half-year: 1 for Jan-Jun, 2 for Jul-Dec
+  const initialHalfYear = new Date().getMonth() >= 6 ? 2 : 1
+  const [selectedHalfYear, setSelectedHalfYear] = useState<1 | 2>(initialHalfYear)
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "bg-success text-success-foreground"
-      case "pending":
-        return "bg-accent text-accent-foreground"
-      case "overdue":
-        return "bg-destructive text-destructive-foreground"
-      default:
-        return "bg-muted text-muted-foreground"
+  const fetchData = async (year: number) => {
+    setLoading(true)
+    try {
+      // API now returns full year data for the selected year
+      const res = await fetch(`/api/sheets/tenant-payments?year=${year}`)
+      if (!res.ok) throw new Error("Failed to fetch")
+      const result = await res.json()
+      setResponse(result)
+    } catch (err) {
+      console.error("Tenant Payments Fetch Error:", err)
+      // Generate mock data for 16 apartments and 12 months
+      const mockData = Array.from({ length: 16 }, (_, i) => {
+        const row: any = { apartment: `דירה ${i + 1}` }
+        HEBREW_MONTHS.forEach((_, index) => {
+          row[`month_${index + 1}`] = Math.random() > 0.3 ? "✓" : "✗" // Use ✓/✗ for consistency
+        })
+        return row
+      })
+
+      setResponse({
+        data: mockData,
+        source: "mock",
+        message: "נתוני דוגמה - שגיאה בחיבור",
+        year,
+        halfYear: selectedHalfYear, // Keep halfYear for consistency, though it's client-side
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "שולם"
-      case "pending":
-        return "ממתין"
-      case "overdue":
-        return "באיחור"
-      default:
-        return "לא ידוע"
-    }
+  useEffect(() => {
+    fetchData(selectedYear)
+  }, [selectedYear])
+
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex items-center justify-center p-6">
+          <Loader2 className="h-6 w-6 animate-spin ml-2" />
+          <span>טוען נתונים...</span>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <CheckCircle className="h-4 w-4" />
-      case "pending":
-        return <Clock className="h-4 w-4" />
-      case "overdue":
-        return <AlertTriangle className="h-4 w-4" />
-      default:
-        return null
-    }
-  }
+  const tenants = response?.data || []
+  const source = response?.source || "mock"
+  const message = response?.message || ""
+
+  // Determine which months to display based on selectedHalfYear
+  const displayMonthIndices = selectedHalfYear === 1 ? [0, 1, 2, 3, 4, 5] : [6, 7, 8, 9, 10, 11]
+  const displayMonthNames = displayMonthIndices.map((index) => HEBREW_MONTHS[index])
+
+  // Calculate statistics based on the displayed months
+  const totalPayments = tenants.reduce((total, tenant) => {
+    return (
+      total +
+      displayMonthIndices.reduce((monthTotal, monthIndex) => {
+        // Check the actual month_X key from the tenant object
+        return monthTotal + (tenant[`month_${monthIndex + 1}`] === "✓" ? 1 : 0)
+      }, 0)
+    )
+  }, 0)
+
+  const totalPossible = tenants.length * displayMonthNames.length
+  const paymentRate = totalPossible > 0 ? ((totalPayments / totalPossible) * 100).toFixed(1) : "0"
+
+  const currentYear = new Date().getFullYear()
+  const yearOptions = [currentYear - 1, currentYear, currentYear + 1]
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="hebrew-text flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          תשלומי דיירים - {currentMonth}
-        </CardTitle>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            💸 סטטוס תשלומי דיירים
+            {source === "sheets" ? (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            )}
+          </CardTitle>
 
-        {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-          <div className="text-center p-3 bg-success/10 rounded-lg">
-            <div className="text-2xl font-bold text-success hebrew-numbers">
-              {paidCount}/{totalPayments}
-            </div>
-            <div className="text-xs text-muted-foreground hebrew-text">דירות שילמו</div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedHalfYear.toString()}
+              onValueChange={(value) => setSelectedHalfYear(Number(value) as 1 | 2)}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">מחצית ראשונה</SelectItem>
+                <SelectItem value="2">מחצית שנייה</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </div>
 
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-lg font-bold currency-hebrew">{formatCurrency(totalCollected)}</div>
-            <div className="text-xs text-muted-foreground hebrew-text">נגבה</div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="bg-green-50 p-3 rounded-lg text-center">
+            <p className="text-sm text-gray-600">אחוז תשלומים</p>
+            <p className="text-2xl font-bold text-green-600">{paymentRate}%</p>
           </div>
-
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-lg font-bold currency-hebrew">{formatCurrency(totalExpected - totalCollected)}</div>
-            <div className="text-xs text-muted-foreground hebrew-text">נותר לגבות</div>
-          </div>
-
-          <div className="text-center p-3 bg-primary/10 rounded-lg">
-            <div className="text-lg font-bold text-primary">{((paidCount / totalPayments) * 100).toFixed(0)}%</div>
-            <div className="text-xs text-muted-foreground hebrew-text">אחוז גביה</div>
+          <div className="bg-blue-50 p-3 rounded-lg text-center">
+            <p className="text-sm text-gray-600">סה"כ תשלומים</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {totalPayments}/{totalPossible}
+            </p>
           </div>
         </div>
       </CardHeader>
-
       <CardContent>
-        <div className="space-y-2">
-          {payments.map((payment) => (
-            <div key={payment.apartmentNumber} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(payment.status)}
-                  <span className="font-medium hebrew-text">{formatApartmentNumber(payment.apartmentNumber)}</span>
-                </div>
+        <div className="overflow-x-auto" dir="rtl">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-right font-bold sticky right-0 bg-white z-10">דירה</TableHead>
+                {displayMonthNames.map((month, index) => (
+                  <TableHead key={month} className="text-center font-bold min-w-[80px]">
+                    {month} {selectedYear % 100} {/* Display year suffix in header */}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tenants.map((tenant, index) => {
+                const apartment = tenant.apartment?.toString().trim()
+                if (!apartment) {
+                  console.warn("Skipping row with missing apartment:", tenant)
+                  return null
+                }
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="text-right font-medium sticky right-0 bg-white z-10">{apartment}</TableCell>
+                    {displayMonthIndices.map((monthIndex) => {
+                      // Access the month data using the month_X key
+                      const rawValue = tenant[`month_${monthIndex + 1}`]
+                      const status = getPaymentStatus(rawValue?.toString().toLowerCase().trim() || "")
+                      return (
+                        <TableCell key={monthIndex} className="text-center">
+                          <span className={`text-lg ${status.color}`}>{status.icon}</span>
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
 
-                <div>
-                  <div className="font-medium hebrew-text">{payment.tenantName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {payment.lastPaymentDate ? (
-                      <span className="hebrew-text">תשלום אחרון: {formatShortHebrewDate(payment.lastPaymentDate)}</span>
-                    ) : (
-                      <span className="hebrew-text">אין תשלומים קודמים</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="font-semibold currency-hebrew">{formatCurrency(payment.monthlyFee)}</div>
-                  {payment.balance !== 0 && (
-                    <div className={`text-sm ${payment.balance > 0 ? "text-destructive" : "text-success"}`}>
-                      <span className="hebrew-text">יתרה: </span>
-                      <span className="currency-hebrew">{formatCurrency(Math.abs(payment.balance))}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Badge className={getStatusColor(payment.status)}>
-                  <span className="hebrew-text">{getStatusText(payment.status)}</span>
-                </Badge>
-
-                <div className="flex gap-1">
-                  {payment.status !== "paid" && onMarkAsPaid && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onMarkAsPaid(payment.apartmentNumber)}
-                      className="hebrew-text"
-                    >
-                      סמן כשולם
-                    </Button>
-                  )}
-
-                  {onContactTenant && (
-                    <>
-                      {payment.phone && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onContactTenant(payment.apartmentNumber, "phone")}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Phone className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {payment.email && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onContactTenant(payment.apartmentNumber, "email")}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="text-center text-sm text-gray-500 mt-4 pt-4 border-t">
+          <p className={source === "sheets" ? "text-green-600" : "text-amber-600"}>{message}</p>
         </div>
       </CardContent>
     </Card>
