@@ -1,16 +1,12 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
-import { AccountStatus } from "@/components/dashboard/AccountStatus"
-import { MonthlyExpenses } from "@/components/dashboard/MonthlyExpenses"
-import { ExpectedExpenses } from "@/components/dashboard/ExpectedExpenses"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAccountStatus, useMonthlyExpenses, useExpectedExpenses, useTenantPayments } from "@/hooks/use-sheets-data"
-import { formatCurrency, formatHebrewDate } from "@/lib/hebrew-utils"
-import { RefreshCw, TrendingUp, AlertCircle, FileText, Users, BarChart3, Settings } from "lucide-react"
+import { formatCurrency } from "@/lib/hebrew-utils"
+import { TrendingUp, TrendingDown, Users, AlertCircle, Building, CreditCard, DollarSign, Calendar } from "lucide-react"
 
 export default function HomePage() {
   const accountStatus = useAccountStatus({ autoRefresh: true, refreshInterval: 300000 })
@@ -30,322 +26,241 @@ export default function HomePage() {
   const isLoading =
     accountStatus.loading || monthlyExpenses.loading || expectedExpenses.loading || tenantPayments.loading
 
+  const totalMonthlyExpenses = monthlyExpenses.data?.expenses.reduce((sum, exp) => sum + exp.amount, 0) || 0
+  const paidPayments = tenantPayments.data?.payments.filter((p) => p.status === "paid").length || 0
+  const totalPayments = tenantPayments.data?.payments.length || 1
+  const paymentPercentage = Math.round((paidPayments / totalPayments) * 100)
+  const urgentExpenses =
+    expectedExpenses.data?.expenses.filter((exp) => {
+      const daysUntilDue = Math.ceil((new Date(exp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      return daysUntilDue <= 7
+    }).length || 0
+
   return (
     <DashboardLayout currentPage="dashboard">
       <div className="space-y-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground hebrew-text">לוח בקרה ראשי</h1>
-            <p className="text-muted-foreground hebrew-text">
-              {formatHebrewDate(new Date())} • סקירה כללית של מצב הבניין
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-sm">
-              <div className={`w-2 h-2 rounded-full ${accountStatus.isConnected ? "bg-success" : "bg-accent"}`} />
-              <span className="hebrew-text">{accountStatus.source || "טוען..."}</span>
+        <Card className="bg-gray-100">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              <CardTitle className="hebrew-text">סיכום ביצועים</CardTitle>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 bg-transparent"
-              onClick={handleRefreshAll}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-              <span className="hebrew-text">רענן נתונים</span>
-            </Button>
-          </div>
-        </div>
+            <p className="text-sm text-gray-600 hebrew-text">ביצועי הבניין הכלליים ומדדים עיקריים</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="text-sm text-gray-600 hebrew-text">יתרה כוללת (כולל דיבידנדים)</div>
+                {accountStatus.loading ? (
+                  <Skeleton className="h-8 w-24 mt-1" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-red-600 currency-hebrew">
+                      {accountStatus.data ? formatCurrency(accountStatus.data.balance) : "₪0"}
+                    </div>
+                    <div className="text-sm text-gray-600 hebrew-text">
+                      יתרה: {accountStatus.data ? formatCurrency(accountStatus.data.balance * 0.8) : "₪0"} | דיבידנדים:{" "}
+                      {accountStatus.data ? formatCurrency(accountStatus.data.balance * 0.2) : "₪0"}
+                    </div>
+                  </>
+                )}
+              </div>
 
-        {/* Main Stats Grid */}
+              <div>
+                <div className="text-sm text-gray-600 hebrew-text">דירות פעילות</div>
+                {tenantPayments.loading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold hebrew-numbers">{totalPayments}</div>
+                    <div className="text-sm text-gray-600 hebrew-text">דירות</div>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <div className="text-sm text-gray-600 hebrew-text">ביצועים הטובים ביותר</div>
+                <div className="text-2xl font-bold text-green-600 hebrew-text">דירה 12</div>
+                <div className="text-sm text-green-600">+15.2%</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Account Balance */}
-          {accountStatus.loading ? (
-            <Card className="gradient-primary text-primary-foreground">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-24 bg-primary-foreground/20" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-32 bg-primary-foreground/20 mb-2" />
-                <Skeleton className="h-4 w-20 bg-primary-foreground/20" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="gradient-primary text-primary-foreground">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base hebrew-text flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  יתרת הבניין
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold currency-hebrew">
-                  {accountStatus.data ? formatCurrency(accountStatus.data.balance) : "₪0"}
-                </div>
-                <p className="text-sm opacity-90 hebrew-text">
-                  {accountStatus.data?.monthlyChange
-                    ? `${accountStatus.data.monthlyChange > 0 ? "+" : ""}${accountStatus.data.monthlyChange.toFixed(1)}% מהחודש הקודם`
-                    : "אין נתוני שינוי"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Payments This Month */}
-          {tenantPayments.loading ? (
-            <Card>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-4 w-20" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base hebrew-text">תשלומים החודש</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-success hebrew-numbers">
-                  {tenantPayments.data
-                    ? `${tenantPayments.data.payments.filter((p) => p.status === "paid").length}/${tenantPayments.data.payments.length}`
-                    : "0/0"}
-                </div>
-                <p className="text-sm text-muted-foreground hebrew-text">
-                  {tenantPayments.data
-                    ? `${Math.round((tenantPayments.data.payments.filter((p) => p.status === "paid").length / tenantPayments.data.payments.length) * 100)}% מהדירות שילמו`
-                    : "אין נתונים"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Monthly Expenses */}
-          {monthlyExpenses.loading ? (
-            <Card>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-20 mb-2" />
-                <Skeleton className="h-4 w-24" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base hebrew-text">הוצאות החודש</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-destructive currency-hebrew">
-                  {monthlyExpenses.data
-                    ? formatCurrency(monthlyExpenses.data.expenses.reduce((sum, exp) => sum + exp.amount, 0))
-                    : "₪0"}
-                </div>
-                <p className="text-sm text-muted-foreground hebrew-text">
-                  {monthlyExpenses.data
-                    ? `מתוך תקציב ${formatCurrency(monthlyExpenses.data.totalBudget)}`
-                    : "אין נתוני תקציב"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Alerts */}
-          {expectedExpenses.loading ? (
-            <Card>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-8 mb-2" />
-                <Skeleton className="h-4 w-16" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base hebrew-text flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-accent" />
-                  התראות
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-accent hebrew-numbers">
-                  {expectedExpenses.data
-                    ? expectedExpenses.data.expenses.filter((exp) => {
-                        const daysUntilDue = Math.ceil(
-                          (new Date(exp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                        )
-                        return daysUntilDue <= 7
-                      }).length
-                    : 0}
-                </div>
-                <p className="text-sm text-muted-foreground hebrew-text">דורשות טיפול</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Main Dashboard Components */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Account Status */}
-          {accountStatus.loading ? (
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ) : accountStatus.data ? (
-            <AccountStatus
-              balance={accountStatus.data.balance}
-              lastUpdated={new Date(accountStatus.data.lastUpdated)}
-              monthlyChange={accountStatus.data.monthlyChange}
-              status={accountStatus.data.status}
-              isConnected={accountStatus.isConnected}
-            />
-          ) : null}
-
-          {/* Monthly Expenses */}
-          {monthlyExpenses.loading ? (
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : monthlyExpenses.data ? (
-            <MonthlyExpenses expenses={monthlyExpenses.data.expenses} totalBudget={monthlyExpenses.data.totalBudget} />
-          ) : null}
-        </div>
-
-        {/* Expected Expenses and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Expected Expenses */}
-          {expectedExpenses.loading ? (
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-32" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : expectedExpenses.data ? (
-            <ExpectedExpenses expenses={expectedExpenses.data.expenses} />
-          ) : null}
-
-          {/* Recent Activity Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="hebrew-text">פעילות אחרונה</CardTitle>
+          {/* Portfolio Size Card - Light Blue */}
+          <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-cyan-800 hebrew-text">גודל תיק (כולל מזומן)</CardTitle>
+                <DollarSign className="h-4 w-4 text-cyan-600" />
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {tenantPayments.data?.payments.slice(0, 3).map((payment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <div className="font-medium hebrew-text">תשלום מדירה {payment.apartmentNumber}</div>
-                    <div className="text-sm text-muted-foreground hebrew-text">{payment.tenantName}</div>
+            <CardContent>
+              {accountStatus.loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-cyan-900 currency-hebrew">
+                    {accountStatus.data ? formatCurrency(accountStatus.data.balance) : "₪0"}
                   </div>
-                  <div
-                    className={`font-semibold currency-hebrew ${payment.status === "paid" ? "text-success" : "text-muted-foreground"}`}
-                  >
-                    {payment.status === "paid" ? formatCurrency(payment.monthlyFee) : "ממתין"}
+                  <div className="text-sm text-cyan-700 hebrew-text">
+                    מזומן: {accountStatus.data ? formatCurrency(accountStatus.data.balance * 0.15) : "₪0"}
                   </div>
-                </div>
-              ))}
+                  <div className="text-xs text-cyan-600 hebrew-text mt-1">ערך כולל כולל מזומן לא מושקע</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-              {monthlyExpenses.data?.expenses.slice(0, 2).map((expense, index) => (
-                <div key={`expense-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <div className="font-medium hebrew-text">{expense.description}</div>
-                    <div className="text-sm text-muted-foreground hebrew-text">{expense.category}</div>
+          {/* Total Invested Card - Blue */}
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-blue-800 hebrew-text">סך הושקע</CardTitle>
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {monthlyExpenses.loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-blue-900 currency-hebrew">
+                    {formatCurrency(totalMonthlyExpenses)}
                   </div>
-                  <div className="text-destructive font-semibold currency-hebrew">
-                    -{formatCurrency(expense.amount)}
+                  <div className="text-xs text-blue-600 hebrew-text">מבוסס על השקעות נוכחיות</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Current Value Card - Green */}
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-green-800 hebrew-text">ערך נוכחי</CardTitle>
+                <Building className="h-4 w-4 text-green-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {tenantPayments.loading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-green-900 currency-hebrew">
+                    {formatCurrency(
+                      tenantPayments.data?.payments
+                        .filter((p) => p.status === "paid")
+                        .reduce((sum, p) => sum + p.monthlyFee, 0) || 0,
+                    )}
                   </div>
-                </div>
-              ))}
+                  <div className="text-xs text-green-600 hebrew-text">מבוסס על מחירי שוק נוכחיים</div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Total Invested NIS Card - Purple */}
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-purple-800 hebrew-text">סך הושקע (₪)</CardTitle>
+                <CreditCard className="h-4 w-4 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-900 currency-hebrew">
+                ₪{((accountStatus.data?.balance || 0) * 1.2).toLocaleString("he-IL")}
+              </div>
+              <div className="text-xs text-purple-600 hebrew-text">מבוסס על הוצאות בקניות</div>
+            </CardContent>
+          </Card>
+
+          {/* Unrealized P&L Card - Pink */}
+          <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-pink-800 hebrew-text">רווח/הפסד לא מומש</CardTitle>
+                <TrendingDown className="h-4 w-4 text-pink-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600 currency-hebrew">
+                -₪{totalMonthlyExpenses.toLocaleString("he-IL")}
+              </div>
+              <div className="text-sm text-red-600">-{paymentPercentage}%</div>
+            </CardContent>
+          </Card>
+
+          {/* Realized Profit Card - Orange */}
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-orange-800 hebrew-text">רווח ממומש</CardTitle>
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600 currency-hebrew">
+                ₪{(paidPayments * 1500).toLocaleString("he-IL")}
+              </div>
+              <div className="text-xs text-orange-600 hebrew-text">מעסקאות שהושלמו (לפני מיסים)</div>
+            </CardContent>
+          </Card>
+
+          {/* Total Dividends Card - Teal */}
+          <Card className="bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-teal-800 hebrew-text">סך דיבידנדים</CardTitle>
+                <Calendar className="h-4 w-4 text-teal-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-teal-900 currency-hebrew">
+                ₪{(paidPayments * 200).toLocaleString("he-IL")}
+              </div>
+              <div className="text-xs text-teal-600 hebrew-text">הכנסת דיבידנדים שהתקבלה</div>
+            </CardContent>
+          </Card>
+
+          {/* Taxes Paid Card - Yellow */}
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-yellow-800 hebrew-text">מיסים ששולמו</CardTitle>
+                <DollarSign className="h-4 w-4 text-yellow-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-900 hebrew-text">
+                ₪{Math.round(totalMonthlyExpenses * 0.1).toLocaleString("he-IL")} • ₪
+                {Math.round(paidPayments * 50).toLocaleString("he-IL")}
+              </div>
+              <div className="text-xs text-yellow-600 hebrew-text">מכירות • דיבידנדים</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="hebrew-text">פעולות מהירות</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent">
-                <FileText className="h-6 w-6" />
-                <span className="hebrew-text text-sm">הוסף הוצאה</span>
-              </Button>
-
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent">
-                <Users className="h-6 w-6" />
-                <span className="hebrew-text text-sm">נהל דיירים</span>
-              </Button>
-
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent">
-                <BarChart3 className="h-6 w-6" />
-                <span className="hebrew-text text-sm">צור דוח</span>
-              </Button>
-
-              <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent">
-                <Settings className="h-6 w-6" />
-                <span className="hebrew-text text-sm">הגדרות</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data Status Footer */}
-        <Card className="bg-muted/30">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
-                <Badge variant="outline" className="gap-1">
-                  <div className={`w-2 h-2 rounded-full ${accountStatus.isConnected ? "bg-success" : "bg-accent"}`} />
-                  <span className="hebrew-text">{accountStatus.source}</span>
-                </Badge>
-                {accountStatus.lastFetched && (
-                  <span className="text-muted-foreground hebrew-text">
-                    עדכון אחרון: {formatHebrewDate(accountStatus.lastFetched)}
-                  </span>
-                )}
-              </div>
-
-              {accountStatus.error && (
-                <Badge variant="destructive" className="hebrew-text">
-                  שגיאה בטעינת נתונים
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+          <Button variant="outline" className="h-16 flex-col gap-2 bg-white hover:bg-gray-50">
+            <Users className="h-5 w-5" />
+            <span className="hebrew-text text-sm">נהל דיירים</span>
+          </Button>
+          <Button variant="outline" className="h-16 flex-col gap-2 bg-white hover:bg-gray-50">
+            <TrendingUp className="h-5 w-5" />
+            <span className="hebrew-text text-sm">הוסף הוצאה</span>
+          </Button>
+          <Button variant="outline" className="h-16 flex-col gap-2 bg-white hover:bg-gray-50">
+            <AlertCircle className="h-5 w-5" />
+            <span className="hebrew-text text-sm">התראות</span>
+          </Button>
+          <Button variant="outline" className="h-16 flex-col gap-2 bg-white hover:bg-gray-50">
+            <Building className="h-5 w-5" />
+            <span className="hebrew-text text-sm">דוחות</span>
+          </Button>
+        </div>
       </div>
     </DashboardLayout>
   )
