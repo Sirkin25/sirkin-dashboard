@@ -22,33 +22,57 @@ export function formatNumber(num: number): string {
 /**
  * Format dates in Hebrew
  */
-export function formatHebrewDate(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date)
+export function formatHebrewDate(date: Date | string): string {
+  try {
+    const validDate = new Date(date)
+    if (isNaN(validDate.getTime())) {
+      return "תאריך לא תקין"
+    }
+    return new Intl.DateTimeFormat("he-IL", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(validDate)
+  } catch (error) {
+    return "תאריך לא תקין"
+  }
 }
 
 /**
  * Format short dates in Hebrew
  */
-export function formatShortHebrewDate(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    year: "2-digit",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date)
+export function formatShortHebrewDate(date: Date | string): string {
+  try {
+    const validDate = new Date(date)
+    if (isNaN(validDate.getTime())) {
+      return "לא תקין"
+    }
+    return new Intl.DateTimeFormat("he-IL", {
+      year: "2-digit",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(validDate)
+  } catch (error) {
+    return "לא תקין"
+  }
 }
 
 /**
  * Format month/year in Hebrew
  */
-export function formatMonthYear(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    year: "numeric",
-    month: "long",
-  }).format(date)
+export function formatMonthYear(date: Date | string): string {
+  try {
+    const validDate = new Date(date)
+    if (isNaN(validDate.getTime())) {
+      return "תאריך לא תקין"
+    }
+    return new Intl.DateTimeFormat("he-IL", {
+      year: "numeric",
+      month: "long",
+    }).format(validDate)
+  } catch (error) {
+    return "תאריך לא תקין"
+  }
 }
 
 /**

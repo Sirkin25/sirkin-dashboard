@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockExpectedExpenses } from "@/lib/mock-data"
 
 const EXPECTED_EXPENSES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.EXPECTED_EXPENSES_GID || "2",
 }
 

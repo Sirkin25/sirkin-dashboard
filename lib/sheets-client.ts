@@ -30,11 +30,11 @@ class SheetsClient {
    */
   private async initializeAuth() {
     try {
-      if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      if (process.env.GOOGLE_SHEETS_CLIENT_EMAIL && process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
         this.auth = new GoogleAuth({
           credentials: {
-            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+            client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+            private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, "\n"),
           },
           scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
         })
@@ -246,6 +246,13 @@ class SheetsClient {
    * Convert Hebrew date strings to Date objects
    */
   parseHebrewDate(dateStr: string): Date {
+    // Handle empty or invalid input
+    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') {
+      return new Date()
+    }
+
+    const cleanDateStr = dateStr.trim()
+
     // Handle various Hebrew date formats
     const formats = [
       /(\d{1,2})\/(\d{1,2})\/(\d{4})/, // DD/MM/YYYY
@@ -254,20 +261,45 @@ class SheetsClient {
     ]
 
     for (const format of formats) {
-      const match = dateStr.match(format)
+      const match = cleanDateStr.match(format)
       if (match) {
         const [, first, second, third] = match
+        let year: number, month: number, day: number
+
         // Assume DD/MM/YYYY or DD-MM-YYYY format for Hebrew
         if (format === formats[0] || format === formats[1]) {
-          return new Date(Number.parseInt(third), Number.parseInt(second) - 1, Number.parseInt(first))
+          day = Number.parseInt(first)
+          month = Number.parseInt(second) - 1 // Month is 0-indexed
+          year = Number.parseInt(third)
         } else {
           // YYYY-MM-DD format
-          return new Date(Number.parseInt(first), Number.parseInt(second) - 1, Number.parseInt(third))
+          year = Number.parseInt(first)
+          month = Number.parseInt(second) - 1 // Month is 0-indexed
+          day = Number.parseInt(third)
+        }
+
+        // Validate the parsed values
+        if (year >= 1900 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+          const date = new Date(year, month, day)
+          // Double-check that the date is valid
+          if (!isNaN(date.getTime())) {
+            return date
+          }
         }
       }
     }
 
-    // Fallback to current date if parsing fails
+    // Try parsing as ISO string or other standard formats
+    try {
+      const date = new Date(cleanDateStr)
+      if (!isNaN(date.getTime())) {
+        return date
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+
+    // Fallback to current date if all parsing fails
     return new Date()
   }
 

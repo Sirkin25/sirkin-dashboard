@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatCurrency, formatShortHebrewDate } from "@/lib/hebrew-utils"
+import { ensureDate, getDaysUntilDate, isDateUrgent, formatDaysUntilDue } from "@/lib/date-utils"
 import { Calendar, Clock, AlertCircle } from "lucide-react"
 
 interface ExpectedExpense {
@@ -11,7 +12,7 @@ interface ExpectedExpense {
   description: string
   category: string
   amount: number
-  dueDate: Date
+  dueDate: Date | string
   priority: "low" | "medium" | "high"
   recurring: boolean
 }
@@ -23,10 +24,7 @@ interface ExpectedExpensesProps {
 
 export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesProps) {
   const totalExpected = expenses.reduce((sum, expense) => sum + expense.amount, 0)
-  const urgentExpenses = expenses.filter((expense) => {
-    const daysUntilDue = Math.ceil((expense.dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    return daysUntilDue <= 7
-  })
+  const urgentExpenses = expenses.filter((expense) => isDateUrgent(expense.dueDate))
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -54,13 +52,7 @@ export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesPro
     }
   }
 
-  const getDaysUntilDue = (dueDate: Date) => {
-    const days = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    if (days < 0) return "באיחור"
-    if (days === 0) return "היום"
-    if (days === 1) return "מחר"
-    return `בעוד ${days} ימים`
-  }
+
 
   return (
     <Card>
@@ -94,8 +86,8 @@ export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesPro
             </div>
           ) : (
             expenses.map((expense) => {
-              const daysUntilDue = Math.ceil((expense.dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-              const isUrgent = daysUntilDue <= 7
+              const daysUntilDue = getDaysUntilDate(expense.dueDate)
+              const isUrgent = isDateUrgent(expense.dueDate)
 
               return (
                 <div
@@ -117,9 +109,9 @@ export function ExpectedExpenses({ expenses, onMarkAsPaid }: ExpectedExpensesPro
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="hebrew-text">{formatShortHebrewDate(expense.dueDate)}</span>
+                        <span className="hebrew-text">{formatShortHebrewDate(ensureDate(expense.dueDate))}</span>
                         <span className={`hebrew-text ${isUrgent ? "text-destructive font-medium" : ""}`}>
-                          {getDaysUntilDue(expense.dueDate)}
+                          {formatDaysUntilDue(expense.dueDate)}
                         </span>
                         <Badge className={getPriorityColor(expense.priority)} variant="secondary">
                           <span className="hebrew-text">{getPriorityText(expense.priority)}</span>
