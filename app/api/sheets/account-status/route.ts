@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { sheetsClient } from "@/lib/sheets-client"
-import { mockAccountStatus } from "@/lib/mock-data"
 import { handleApiError } from "@/lib/errors"
 import { formatAccountStatus, parseHebrewCurrency, parseHebrewDate } from "@/lib/formatters"
 import type { AccountStatusData, ApiResponse } from "@/lib/types/api"
@@ -13,8 +12,6 @@ const ACCOUNT_STATUS_CONFIG = {
 
 function parseAccountStatusData(csvData: string): AccountStatusData[] {
   const rows = sheetsClient.parseCSV(csvData)
-  
-  console.log("Account Status CSV rows:", rows)
 
   // Skip header row
   const dataRows = rows.slice(1)
@@ -28,8 +25,6 @@ function parseAccountStatusData(csvData: string): AccountStatusData[] {
       const lastUpdated = parseHebrewDate(dateStr || "")
       const monthlyChange = Number.parseFloat(changeStr || "0")
       const status = formatAccountStatus(balance)
-
-      console.log("Parsing account status:", { dateStr, balanceStr, balance, changeStr, monthlyChange })
 
       return {
         balance,
@@ -45,30 +40,23 @@ export async function GET() {
   try {
     const result = await sheetsClient.fetchSheetData(
       ACCOUNT_STATUS_CONFIG, 
-      parseAccountStatusData, 
-      [{
-        balance: mockAccountStatus.balance,
-        lastUpdated: mockAccountStatus.lastUpdated.toISOString(),
-        monthlyChange: mockAccountStatus.monthlyChange,
-        status: mockAccountStatus.status,
-      }]
+      parseAccountStatusData
     )
 
     // Return the most recent account status
-    const accountStatus = result.data[0] || {
-      balance: mockAccountStatus.balance,
-      lastUpdated: mockAccountStatus.lastUpdated.toISOString(),
-      monthlyChange: mockAccountStatus.monthlyChange,
-      status: mockAccountStatus.status,
+    const accountStatus = result.data[0]
+    
+    if (!accountStatus) {
+      throw new Error("No account status data available")
     }
 
     const response: ApiResponse<AccountStatusData> = {
       data: accountStatus,
       meta: {
         isConnected: result.status === "connected",
-        source: result.source,
+        source: result.source as 'sheets' | 'error',
         lastFetched: result.lastUpdated.toISOString(),
-        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+        message: "נתונים נטענו מגוגל שיטס"
       }
     }
 
@@ -79,19 +67,18 @@ export async function GET() {
     const errorState = handleApiError(error as Error)
     
     const response: ApiResponse<AccountStatusData> = {
-      data: {
-        balance: mockAccountStatus.balance,
-        lastUpdated: mockAccountStatus.lastUpdated.toISOString(),
-        monthlyChange: mockAccountStatus.monthlyChange,
-        status: mockAccountStatus.status,
-      },
+      data: null,
       meta: {
         isConnected: false,
-        source: "mock",
+        source: "error",
         lastFetched: new Date().toISOString(),
-        message: "נתוני דוגמה - שגיאה בחיבור"
+        message: "שגיאה בטעינת נתונים מגוגל שיטס"
       },
-      error: errorState
+      error: {
+        code: errorState.type,
+        message: errorState.message,
+        hebrewMessage: errorState.hebrewMessage
+      }
     }
 
     return NextResponse.json(response, { status: 500 })

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatCurrency, formatShortHebrewDate } from "@/lib/hebrew-utils"
+import { formatCurrency, formatShortHebrewDate } from "@/lib/formatters"
 import { useExpectedExpenses } from "@/hooks/use-sheets-data"
 import { Calendar, Clock, AlertCircle } from "lucide-react"
 

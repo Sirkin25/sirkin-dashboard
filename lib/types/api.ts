@@ -1,10 +1,10 @@
 // Standardized API response types for the building management dashboard
 
 export interface ApiResponse<T> {
-  data: T
+  data: T | null
   meta: {
     isConnected: boolean
-    source: 'sheets' | 'mock' | 'error'
+    source: 'sheets' | 'error'
     lastFetched: string
     message?: string
   }

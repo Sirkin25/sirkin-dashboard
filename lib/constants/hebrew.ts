@@ -40,7 +40,6 @@ export const ERROR_MESSAGES = {
 
 export const STATUS_MESSAGES = {
   connected: 'מחובר לגוגל שיטס',
-  mock: 'נתונים לדוגמה',
   error: 'שגיאה בחיבור',
   loading: 'טוען נתונים...',
   refreshing: 'מרענן נתונים...',

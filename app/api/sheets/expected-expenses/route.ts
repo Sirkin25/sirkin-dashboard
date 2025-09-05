@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { sheetsClient } from "@/lib/sheets-client"
-import { mockExpectedExpenses } from "@/lib/mock-data"
 
 const EXPECTED_EXPENSES_CONFIG = {
   sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
@@ -19,8 +18,6 @@ interface ExpectedExpenseRow {
 
 function parseExpectedExpensesData(csvData: string): ExpectedExpenseRow[] {
   const rows = sheetsClient.parseCSV(csvData)
-  
-  console.log("Expected Expenses CSV rows:", rows)
 
   // Skip header row
   const dataRows = rows.slice(1)
@@ -50,8 +47,6 @@ function parseExpectedExpensesData(csvData: string): ExpectedExpenseRow[] {
         }
       }
 
-      console.log("Parsing expected expense:", { categoryStr, amountStr, expectedMonthStr, amount, description })
-
       return {
         id: `expected-${index + 1}`,
         description,
@@ -69,17 +64,16 @@ export async function GET() {
   try {
     const result = await sheetsClient.fetchSheetData(
       EXPECTED_EXPENSES_CONFIG,
-      parseExpectedExpensesData,
-      mockExpectedExpenses,
+      parseExpectedExpensesData
     )
 
     const response = {
       data: result.data,
       meta: {
         isConnected: result.status === "connected",
-        source: result.source as 'sheets' | 'mock' | 'error',
+        source: result.source as 'sheets' | 'error',
         lastFetched: result.lastUpdated.toISOString(),
-        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+        message: "נתונים נטענו מגוגל שיטס"
       }
     }
 
@@ -88,12 +82,12 @@ export async function GET() {
     console.error("Expected expenses API error:", error)
 
     const response = {
-      data: mockExpectedExpenses,
+      data: null,
       meta: {
         isConnected: false,
-        source: "mock" as const,
+        source: "error" as const,
         lastFetched: new Date().toISOString(),
-        message: "נתוני דוגמה - שגיאה בחיבור"
+        message: "שגיאה בטעינת נתונים מגוגל שיטס"
       },
       error: {
         code: "FETCH_ERROR",

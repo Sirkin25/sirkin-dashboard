@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { formatCurrency, formatShortHebrewDate } from "@/lib/hebrew-utils"
+import { formatCurrency, formatShortHebrewDate } from "@/lib/formatters"
 import { Plus, FileText, Trash2 } from "lucide-react"
 
 interface Expense {

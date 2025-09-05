@@ -7,7 +7,8 @@ import { formatCurrency } from "@/lib/formatters"
 import { Home, Building, TrendingUp } from "lucide-react"
 import { useApartmentFees } from "@/hooks/use-sheets-data"
 import { LoadingSpinner } from "@/components/ui/loading-states"
-import { ErrorDisplay, ConnectionStatus } from "@/components/ui/error-display"
+import { NoDataAvailable } from "@/components/ui/no-data-available"
+import { ConnectionError } from "@/components/ui/connection-error"
 
 export function ApartmentFees() {
   const { data: feesData, loading, error, isConnected, source, refresh } = useApartmentFees({ autoRefresh: true })
@@ -16,37 +17,36 @@ export function ApartmentFees() {
     return (
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <CardTitle className="text-xl font-bold flex items-center gap-2 hebrew-text">
             <Home className="h-5 w-5" />
             תעריפי דירות
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center p-6">
-          <LoadingSpinner size="lg" />
+          <LoadingSpinner size="lg" message="טוען תעריפי דירות..." />
         </CardContent>
       </Card>
     )
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={refresh} />
+    return (
+      <ConnectionError
+        hebrewMessage={error.hebrewMessage || "שגיאה בטעינת תעריפי דירות"}
+        onRetry={refresh}
+        canRetry={error.canRetry}
+      />
+    )
   }
 
   if (!feesData) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Home className="h-5 w-5" />
-            תעריפי דירות
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground hebrew-text">אין נתונים זמינים</p>
-          </div>
-        </CardContent>
-      </Card>
+      <NoDataAvailable
+        title="אין נתוני תעריפים"
+        hebrewMessage="לא ניתן לטעון תעריפי דירות מגוגל שיטס"
+        onRetry={refresh}
+        isConnected={isConnected}
+      />
     )
   }
 
@@ -63,7 +63,7 @@ export function ApartmentFees() {
                 <p className="text-sm text-muted-foreground hebrew-text">סך הכנסות חודשיות</p>
                 <p className="text-2xl font-bold currency-hebrew">{formatCurrency(totalRevenue)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
           </CardContent>
         </Card>
@@ -75,7 +75,7 @@ export function ApartmentFees() {
                 <p className="text-sm text-muted-foreground hebrew-text">ממוצע תשלום</p>
                 <p className="text-2xl font-bold currency-hebrew">{formatCurrency(averageFee)}</p>
               </div>
-              <Building className="h-8 w-8 text-blue-600" />
+              <Building className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
           </CardContent>
         </Card>
@@ -87,7 +87,7 @@ export function ApartmentFees() {
                 <p className="text-sm text-muted-foreground hebrew-text">מספר דירות</p>
                 <p className="text-2xl font-bold hebrew-numbers">{apartments.length}</p>
               </div>
-              <Home className="h-8 w-8 text-purple-600" />
+              <Home className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
           </CardContent>
         </Card>
@@ -97,11 +97,16 @@ export function ApartmentFees() {
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <CardTitle className="text-xl font-bold flex items-center gap-2 hebrew-text">
               <Home className="h-5 w-5" />
               תעריפי דירות
             </CardTitle>
-            <ConnectionStatus isConnected={isConnected} source={source} />
+            <div className="flex items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+              <span className="text-xs text-muted-foreground">
+                {isConnected ? "מחובר" : "לא מחובר"}
+              </span>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -128,7 +133,7 @@ export function ApartmentFees() {
                     <TableCell className="text-right hebrew-numbers">
                       {apartment.apartmentSize}
                     </TableCell>
-                    <TableCell className="text-right font-bold text-blue-600 currency-hebrew">
+                    <TableCell className="text-right font-bold text-blue-600 dark:text-blue-400 currency-hebrew">
                       {formatCurrency(apartment.totalMonthlyFee)}
                     </TableCell>
                     <TableCell className="text-right">

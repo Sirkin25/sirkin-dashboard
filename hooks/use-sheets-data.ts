@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { handleApiError, classifyError } from "@/lib/errors"
 import type { ErrorState, LoadingState, ApiResponse } from "@/lib/types/api"
 
@@ -42,8 +42,19 @@ export function useSheetData<T>(
   const [lastFetched, setLastFetched] = useState<Date | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   const fetchData = useCallback(async (isRetry = false) => {
     try {
+      // Cancel any existing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Create new abort controller
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
       if (!isRetry) {
         setLoading(true)
       } else {
@@ -57,6 +68,7 @@ export function useSheetData<T>(
           "Content-Type": "application/json",
           "Cache-Control": "no-cache",
         },
+        signal: controller.signal
       })
 
       const result: ApiResponse<T> = await response.json()
@@ -65,12 +77,22 @@ export function useSheetData<T>(
         throw new Error(result.error?.message || `HTTP ${response.status}: ${response.statusText}`)
       }
 
+      // Handle null data from API (no mock data fallback)
+      if (result.data === null) {
+        throw new Error("No data available from Google Sheets")
+      }
+
       setData(result.data)
       setIsConnected(result.meta.isConnected)
       setSource(result.meta.source)
       setLastFetched(new Date(result.meta.lastFetched))
       setError(null)
     } catch (fetchError) {
+      // Don't handle aborted requests as errors
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        return
+      }
+
       console.error(`Error fetching ${endpoint}:`, fetchError)
       
       const errorState = handleApiError(
@@ -80,9 +102,11 @@ export function useSheetData<T>(
       
       setError(errorState)
       setIsConnected(false)
+      setData(null) // Clear data on error
     } finally {
       setLoading(false)
       setIsRefreshing(false)
+      abortControllerRef.current = null
     }
   }, [endpoint])
 
@@ -117,18 +141,8 @@ export function useSheetData<T>(
     fetchData()
   }, [fetchData])
 
-  // Auto refresh
-  useEffect(() => {
-    if (!autoRefresh || refreshInterval <= 0) return
-
-    const interval = setInterval(() => {
-      if (!loading && !isRefreshing) {
-        fetchData(true)
-      }
-    }, refreshInterval)
-    
-    return () => clearInterval(interval)
-  }, [autoRefresh, refreshInterval, fetchData, loading, isRefreshing])
+  // Remove auto-refresh logic - now handled by centralized auto-refresh system
+  // Individual hooks no longer manage their own auto-refresh
 
   // Auto retry on certain errors
   useEffect(() => {
@@ -161,22 +175,38 @@ export function useSheetData<T>(
 }
 
 // Specific hooks for each data type with proper typing
+// Auto-refresh is now handled by the centralized system
 export function useAccountStatus(options?: UseSheetDataOptions) {
-  return useSheetData<import('@/lib/types/api').AccountStatusData>("account-status", options)
+  return useSheetData<import('@/lib/types/api').AccountStatusData>("account-status", {
+    ...options,
+    autoRefresh: false // Disable individual auto-refresh
+  })
 }
 
 export function useMonthlyExpenses(options?: UseSheetDataOptions) {
-  return useSheetData<import('@/lib/types/api').ExpenseItem[]>("monthly-expenses", options)
+  return useSheetData<import('@/lib/types/api').ExpenseItem[]>("monthly-expenses", {
+    ...options,
+    autoRefresh: false // Disable individual auto-refresh
+  })
 }
 
 export function useExpectedExpenses(options?: UseSheetDataOptions) {
-  return useSheetData<import('@/lib/types/api').ExpectedExpenseItem[]>("expected-expenses", options)
+  return useSheetData<import('@/lib/types/api').ExpectedExpenseItem[]>("expected-expenses", {
+    ...options,
+    autoRefresh: false // Disable individual auto-refresh
+  })
 }
 
 export function useTenantPayments(options?: UseSheetDataOptions) {
-  return useSheetData<import('@/lib/types/api').TenantPaymentsResponse>("tenant-payments", options)
+  return useSheetData<import('@/lib/types/api').TenantPaymentsResponse>("tenant-payments", {
+    ...options,
+    autoRefresh: false // Disable individual auto-refresh
+  })
 }
 
 export function useApartmentFees(options?: UseSheetDataOptions) {
-  return useSheetData<import('@/lib/types/api').ApartmentFeesResponse>("apartment-fees", options)
+  return useSheetData<import('@/lib/types/api').ApartmentFeesResponse>("apartment-fees", {
+    ...options,
+    autoRefresh: false // Disable individual auto-refresh
+  })
 }

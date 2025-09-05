@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Filter } from "lucide-react"
 import { HEBREW_MONTHS } from "@/lib/constants/hebrew"
 import { formatPaymentStatus } from "@/lib/formatters"
-import { ErrorDisplay, ConnectionStatus } from "@/components/ui/error-display"
+import { NoDataAvailable } from "@/components/ui/no-data-available"
+import { ConnectionError } from "@/components/ui/connection-error"
 import { LoadingSpinner, RefreshIndicator } from "@/components/ui/loading-states"
 import type { TenantPaymentsResponse, ApiResponse, ErrorState } from "@/lib/types/api"
 
@@ -65,28 +66,36 @@ export function TenantPayments() {
     return (
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-xl font-bold text-gray-800 hebrew-text">
+          <CardTitle className="text-xl font-bold hebrew-text">
             💸 סטטוס תשלומי דיירים
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <LoadingSpinner size="lg" />
+          <LoadingSpinner size="lg" message="טוען נתוני תשלומים..." />
         </CardContent>
       </Card>
     )
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={handleRetry} />
+    return (
+      <ConnectionError
+        hebrewMessage={error.hebrewMessage}
+        errorCode={error.type}
+        onRetry={handleRetry}
+        canRetry={error.canRetry}
+      />
+    )
   }
 
-  if (!response) {
+  if (!response || !response.data) {
     return (
-      <Card className="w-full">
-        <CardContent className="text-center py-8">
-          <p className="text-muted-foreground hebrew-text">אין נתונים זמינים</p>
-        </CardContent>
-      </Card>
+      <NoDataAvailable
+        title="אין נתוני תשלומים"
+        hebrewMessage="לא ניתן לטעון נתוני תשלומי דיירים מגוגל שיטס"
+        onRetry={handleRetry}
+        isConnected={false}
+      />
     )
   }
 
@@ -135,17 +144,19 @@ export function TenantPayments() {
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-xl font-bold text-gray-800 hebrew-text">
+            <CardTitle className="text-xl font-bold hebrew-text">
               💸 סטטוס תשלומי דיירים
             </CardTitle>
-            <ConnectionStatus 
-              isConnected={meta.isConnected} 
-              source={meta.source}
-            />
+            <div className="flex items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${meta.isConnected ? "bg-green-500" : "bg-red-500"}`} />
+              <span className="text-xs text-muted-foreground">
+                {meta.isConnected ? "מחובר" : "לא מחובר"}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-600" />
+            <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
               <SelectTrigger className="w-24">
                 <SelectValue />
@@ -175,13 +186,13 @@ export function TenantPayments() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="bg-green-50 p-3 rounded-lg text-center">
-            <p className="text-sm text-gray-600 hebrew-text">אחוז תשלומים</p>
-            <p className="text-2xl font-bold text-green-600">{statistics.paymentRate}%</p>
+          <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg text-center border border-green-200 dark:border-green-800">
+            <p className="text-sm text-muted-foreground hebrew-text">אחוז תשלומים</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.paymentRate}%</p>
           </div>
-          <div className="bg-blue-50 p-3 rounded-lg text-center">
-            <p className="text-sm text-gray-600 hebrew-text">סה"כ תשלומים</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg text-center border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-muted-foreground hebrew-text">סה"כ תשלומים</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {statistics.totalPayments}/{statistics.totalPossible}
             </p>
           </div>
@@ -251,8 +262,8 @@ export function TenantPayments() {
           </Table>
         </div>
 
-        <div className="text-center text-sm text-gray-500 mt-4 pt-4 border-t">
-          <p className={`hebrew-text ${meta.isConnected ? "text-green-600" : "text-amber-600"}`}>
+        <div className="text-center text-sm text-muted-foreground mt-4 pt-4 border-t">
+          <p className={`hebrew-text ${meta.isConnected ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
             {meta.message}
           </p>
         </div>

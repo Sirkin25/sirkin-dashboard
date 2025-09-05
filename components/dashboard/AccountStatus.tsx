@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react"
 import { formatCurrency, formatHebrewDate } from "@/lib/formatters"
 import { ACCOUNT_STATUS_TEXTS } from "@/lib/constants/hebrew"
-import { ErrorDisplay, ConnectionStatus } from "@/components/ui/error-display"
+import { ConnectionError } from "@/components/ui/connection-error"
+import { NoDataAvailable } from "@/components/ui/no-data-available"
 import { LoadingSpinner, RefreshIndicator } from "@/components/ui/loading-states"
 import type { AccountStatusData, ApiResponse, ErrorState } from "@/lib/types/api"
 
@@ -72,21 +73,23 @@ export function AccountStatus() {
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={handleRetry} />
+    return (
+      <ConnectionError
+        hebrewMessage={error.hebrewMessage}
+        onRetry={handleRetry}
+        canRetry={error.canRetry}
+      />
+    )
   }
 
-  if (!response) {
+  if (!response || !response.data) {
     return (
-      <Card className="relative overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-lg hebrew-text">מצב חשבון הבניין</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground hebrew-text">אין נתונים זמינים</p>
-          </div>
-        </CardContent>
-      </Card>
+      <NoDataAvailable
+        title="אין נתוני חשבון"
+        hebrewMessage="לא ניתן לטעון נתוני חשבון הבניין מגוגל שיטס"
+        onRetry={handleRetry}
+        isConnected={false}
+      />
     )
   }
 
@@ -136,10 +139,12 @@ export function AccountStatus() {
             </div>
           </Badge>
         </div>
-        <ConnectionStatus 
-          isConnected={meta.isConnected} 
-          source={meta.source}
-        />
+        <div className="flex items-center gap-1">
+          <div className={`w-2 h-2 rounded-full ${meta.isConnected ? "bg-green-500" : "bg-red-500"}`} />
+          <span className="text-xs text-muted-foreground">
+            {meta.isConnected ? "מחובר" : "לא מחובר"}
+          </span>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">

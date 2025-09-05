@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { sheetsClient } from "@/lib/sheets-client"
-import { mockApartmentFees } from "@/lib/mock-data"
 
 const APARTMENT_FEES_CONFIG = {
   sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
@@ -58,12 +57,12 @@ function parseApartmentFeesData(csvData: string): ApartmentFeeRow[] {
         feeType: "owner" as const,
       }
     })
-    .filter((row) => row !== null)
+    .filter((row): row is ApartmentFeeRow => row !== null)
 }
 
 export async function GET() {
   try {
-    const result = await sheetsClient.fetchSheetData(APARTMENT_FEES_CONFIG, parseApartmentFeesData, mockApartmentFees)
+    const result = await sheetsClient.fetchSheetData(APARTMENT_FEES_CONFIG, parseApartmentFeesData)
 
     const totalRevenue = result.data.reduce((sum, fee) => sum + fee.totalMonthlyFee, 0)
     const averageFee = result.data.length > 0 ? totalRevenue / result.data.length : 0
@@ -76,9 +75,9 @@ export async function GET() {
       },
       meta: {
         isConnected: result.status === "connected",
-        source: result.source as 'sheets' | 'mock' | 'error',
+        source: result.source as 'sheets' | 'error',
         lastFetched: result.lastUpdated.toISOString(),
-        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+        message: "נתונים נטענו מגוגל שיטס"
       }
     }
 
@@ -86,20 +85,13 @@ export async function GET() {
   } catch (error) {
     console.error("Apartment fees API error:", error)
 
-    const totalRevenue = mockApartmentFees.reduce((sum, fee) => sum + fee.totalMonthlyFee, 0)
-    const averageFee = mockApartmentFees.length > 0 ? totalRevenue / mockApartmentFees.length : 0
-
     const response = {
-      data: {
-        apartments: mockApartmentFees,
-        totalRevenue,
-        averageFee
-      },
+      data: null,
       meta: {
         isConnected: false,
-        source: "mock" as const,
+        source: "error" as const,
         lastFetched: new Date().toISOString(),
-        message: "נתוני דוגמה - שגיאה בחיבור"
+        message: "שגיאה בטעינת נתונים מגוגל שיטס"
       },
       error: {
         code: "FETCH_ERROR",

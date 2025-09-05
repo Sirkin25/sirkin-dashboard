@@ -202,3 +202,24 @@ export function LoadingStateManager({ loadingState, children, fallback, classNam
     </div>
   )
 }
+export
+ function LoadingDashboard({ className }: { className?: string }) {
+  return (
+    <div className={`space-y-6 ${className}`}>
+      <div className="flex items-center justify-center py-8">
+        <LoadingSpinner size="lg" message="טוען לוח הבקרה..." />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <CardLoading key={i} />
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CardLoading />
+        <CardLoading />
+      </div>
+    </div>
+  )
+}

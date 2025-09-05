@@ -5,8 +5,12 @@ import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Home, FileText, Menu, X, CreditCard, BarChart3, Moon, RefreshCw } from "lucide-react"
-import { DashboardErrorBoundary } from "@/components/error-boundary"
+import { Home, FileText, Menu, X, CreditCard, BarChart3 } from "lucide-react"
+import { DashboardErrorBoundary } from "@/components/error-boundary-enhanced"
+import { ThemeProvider } from "@/lib/theme/ThemeProvider"
+import { DarkModeToggle } from "@/components/ui/dark-mode-toggle"
+import { RefreshButton } from "@/components/ui/refresh-button"
+import { AutoRefreshIndicator } from "@/components/ui/auto-refresh-indicator"
 import { setupGlobalErrorHandlers } from "@/lib/error-reporting"
 
 interface DashboardLayoutProps {
@@ -44,49 +48,53 @@ export function DashboardLayout({ children, currentPage = "dashboard" }: Dashboa
   const activePage = getActivePageFromPath()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-        <div className="flex h-16 items-center justify-between px-6" dir="rtl">
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <h1 className="text-xl font-bold text-gray-900 hebrew-text">לוח בקרה ועד הבית</h1>
-              <p className="text-sm text-gray-600 hebrew-text">מעקב וניהול הבניין שלך</p>
-            </div>
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-              <span className="hidden sm:inline hebrew-text ml-2">רענן</span>
-              <RefreshCw className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-              <Moon className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="border-t bg-blue-50 px-6 py-2" dir="rtl">
-          <div className="flex items-center justify-between text-sm">
+    <ThemeProvider>
+      <div className="min-h-screen bg-background transition-colors">
+        <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+          <div className="flex h-16 items-center justify-between px-6" dir="rtl">
             <div className="flex items-center gap-4">
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded hebrew-text">נתונים נטענו בהצלחה</span>
-              <span className="text-gray-600 hebrew-text">עודכן: {mounted ? new Date().toLocaleTimeString("he-IL") : "טוען..."}</span>
+              <div className="text-right">
+                <h1 className="text-xl font-bold hebrew-text">לוח בקרה ועד הבית</h1>
+                <p className="text-sm text-muted-foreground hebrew-text">מעקב וניהול הבניין שלך</p>
+              </div>
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <RefreshButton 
+                variant="ghost" 
+                size="sm"
+                showLastRefresh={false}
+                className="text-muted-foreground hover:text-foreground"
+              />
+              <DarkModeToggle 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+              />
             </div>
           </div>
-        </div>
 
+          <div className="border-t bg-muted/50 px-6 py-2" dir="rtl">
+            <div className="flex items-center justify-between text-sm">
+              <AutoRefreshIndicator 
+                showControls={false}
+                className="flex items-center gap-4"
+              />
+            </div>
+          </div>
+        </header>
 
-      </header>
-
-      <main className="p-6">
-        <div className="mx-auto max-w-7xl">
-          <DashboardErrorBoundary>
-            {children}
-          </DashboardErrorBoundary>
-        </div>
-      </main>
-    </div>
+        <main className="p-6">
+          <div className="mx-auto max-w-7xl">
+            <DashboardErrorBoundary>
+              {children}
+            </DashboardErrorBoundary>
+          </div>
+        </main>
+      </div>
+    </ThemeProvider>
   )
 }

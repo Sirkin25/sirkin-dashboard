@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { sheetsClient } from "@/lib/sheets-client"
-import { mockExpenses } from "@/lib/mock-data"
 
 const MONTHLY_EXPENSES_CONFIG = {
   sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
@@ -46,15 +45,15 @@ function parseMonthlyExpensesData(csvData: string): ExpenseRow[] {
 
 export async function GET() {
   try {
-    const result = await sheetsClient.fetchSheetData(MONTHLY_EXPENSES_CONFIG, parseMonthlyExpensesData, mockExpenses)
+    const result = await sheetsClient.fetchSheetData(MONTHLY_EXPENSES_CONFIG, parseMonthlyExpensesData)
 
     const response = {
       data: result.data,
       meta: {
         isConnected: result.status === "connected",
-        source: result.source as 'sheets' | 'mock' | 'error',
+        source: result.source as 'sheets' | 'error',
         lastFetched: result.lastUpdated.toISOString(),
-        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+        message: "נתונים נטענו מגוגל שיטס"
       }
     }
 
@@ -63,12 +62,12 @@ export async function GET() {
     console.error("Monthly expenses API error:", error)
 
     const response = {
-      data: mockExpenses,
+      data: null,
       meta: {
         isConnected: false,
-        source: "mock" as const,
+        source: "error" as const,
         lastFetched: new Date().toISOString(),
-        message: "נתוני דוגמה - שגיאה בחיבור"
+        message: "שגיאה בטעינת נתונים מגוגל שיטס"
       },
       error: {
         code: "FETCH_ERROR",

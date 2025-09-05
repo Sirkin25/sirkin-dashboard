@@ -11,7 +11,7 @@ interface SheetConfig {
 
 interface SheetResponse<T> {
   data: T[]
-  status: "connected" | "mock" | "error"
+  status: "connected" | "error"
   lastUpdated: Date
   source: string
 }
@@ -52,7 +52,6 @@ class SheetsClient {
   async fetchSheetData<T>(
     config: SheetConfig,
     parser: (csvData: string) => T[],
-    mockData: T[],
   ): Promise<SheetResponse<T>> {
     try {
       if (this.sheetsAPI) {
@@ -102,21 +101,11 @@ class SheetsClient {
         }
       }
 
-      // If all methods fail, return mock data
-      return {
-        data: mockData,
-        status: "mock",
-        lastUpdated: new Date(),
-        source: "Mock Data",
-      }
+      // If all methods fail, return error state
+      throw new Error("Unable to fetch data from Google Sheets")
     } catch (error) {
       console.error("Sheets client error:", error)
-      return {
-        data: mockData,
-        status: "error",
-        lastUpdated: new Date(),
-        source: "Mock Data (Error)",
-      }
+      throw error
     }
   }
 

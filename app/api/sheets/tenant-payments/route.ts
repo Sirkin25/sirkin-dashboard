@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { sheetsClient } from "@/lib/sheets-client"
-import { mockTenantPayments } from "@/lib/mock-data"
 import { handleApiError } from "@/lib/errors"
 import { HEBREW_MONTHS } from "@/lib/constants/hebrew"
 import type { TenantPaymentRow, TenantPaymentsResponse, ApiResponse } from "@/lib/types/api"
@@ -76,15 +75,7 @@ function parseTenantPaymentsData(csvData: string): ParsedTenantPaymentsData {
   return { tenantPayments, actualMonths }
 }
 
-function generateMockTenantPayments(year: number): TenantPaymentRow[] {
-  return Array.from({ length: 16 }, (_, i) => {
-    const row: any = { apartment: `דירה ${i + 1}` }
-    HEBREW_MONTHS.forEach((_, index) => {
-      row[`month_${index + 1}`] = Math.random() > 0.3 ? "✓" : "✗"
-    })
-    return row as TenantPaymentRow
-  })
-}
+
 
 function calculateStatistics(data: TenantPaymentRow[], halfYear: 1 | 2): {
   totalPayments: number
@@ -131,8 +122,7 @@ export async function GET(request: Request) {
         const parsed = parseTenantPaymentsData(csvData)
         actualMonths = parsed.actualMonths // Store the actual months
         return parsed.tenantPayments // Return only the tenant payments for the sheets client
-      },
-      generateMockTenantPayments(year),
+      }
     )
 
     const tenantPayments = result.data
@@ -148,9 +138,9 @@ export async function GET(request: Request) {
       },
       meta: {
         isConnected: result.status === "connected",
-        source: result.source,
+        source: result.source as 'sheets' | 'error',
         lastFetched: result.lastUpdated.toISOString(),
-        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+        message: "נתונים נטענו מגוגל שיטס"
       }
     }
 
@@ -161,24 +151,20 @@ export async function GET(request: Request) {
     const errorState = handleApiError(error as Error)
     const year = new Date().getFullYear()
     const halfYear = 1
-    const mockData = generateMockTenantPayments(year)
-    const statistics = calculateStatistics(mockData, halfYear)
 
     const response: ApiResponse<TenantPaymentsResponse> = {
-      data: {
-        data: mockData,
-        year,
-        halfYear,
-        actualMonths: [], // No actual months for mock data
-        statistics
-      },
+      data: null,
       meta: {
         isConnected: false,
-        source: "mock",
+        source: "error",
         lastFetched: new Date().toISOString(),
-        message: "נתוני דוגמה - שגיאה בחיבור"
+        message: "שגיאה בטעינת נתונים מגוגל שיטס"
       },
-      error: errorState
+      error: {
+        code: errorState.type,
+        message: errorState.message,
+        hebrewMessage: errorState.hebrewMessage
+      }
     }
 
     return NextResponse.json(response, { status: 500 })

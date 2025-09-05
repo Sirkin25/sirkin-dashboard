@@ -29,6 +29,11 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    
+    /* Hebrew text contrast variables */
+    --hebrew-text-primary: 222.2 84% 4.9%;
+    --hebrew-text-secondary: 215.4 16.3% 46.9%;
+    --hebrew-text-muted: 215.4 16.3% 56.9%;
   }
 
   .dark {
@@ -56,6 +61,11 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    
+    /* Hebrew text contrast variables for dark mode */
+    --hebrew-text-primary: 210 40% 98%;
+    --hebrew-text-secondary: 215 20.2% 65.1%;
+    --hebrew-text-muted: 215 20.2% 55.1%;
   }
 }
 
@@ -122,4 +132,102 @@
   .sticky-right {
     min-width: 80px;
   }
+}
+
+/* Hebrew text styling with theme support */
+.hebrew-text {
+  color: hsl(var(--hebrew-text-primary));
+  direction: rtl;
+  text-align: right;
+}
+
+.hebrew-text-secondary {
+  color: hsl(var(--hebrew-text-secondary));
+  direction: rtl;
+  text-align: right;
+}
+
+.hebrew-text-muted {
+  color: hsl(var(--hebrew-text-muted));
+  direction: rtl;
+  text-align: right;
+}
+
+/* Currency and numbers maintain LTR direction */
+.currency-hebrew {
+  direction: ltr;
+  text-align: left;
+}
+
+.hebrew-numbers {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Theme transition animations */
+.theme-transition {
+  transition: all 0.3s ease;
+}
+
+/* Card components with theme support */
+.card {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Button theme support */
+.btn-theme {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Loading states with theme support */
+.loading-spinner {
+  @apply text-muted-foreground;
+}
+
+/* Error states with theme support */
+.error-text {
+  @apply text-destructive;
+}
+
+/* Success states with theme support */
+.success-text {
+  @apply text-green-600 dark:text-green-400;
+}
+
+/* Warning states with theme support */
+.warning-text {
+  @apply text-yellow-600 dark:text-yellow-400;
+}
+
+/* Gradient backgrounds for cards with theme support */
+.gradient-card-cyan {
+  @apply bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200;
+}
+
+.dark .gradient-card-cyan {
+  @apply from-cyan-950/50 to-cyan-900/50 border-cyan-800;
+}
+
+.gradient-card-blue {
+  @apply bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200;
+}
+
+.dark .gradient-card-blue {
+  @apply from-blue-950/50 to-blue-900/50 border-blue-800;
+}
+
+.gradient-card-green {
+  @apply bg-gradient-to-br from-green-50 to-green-100 border-green-200;
+}
+
+.dark .gradient-card-green {
+  @apply from-green-950/50 to-green-900/50 border-green-800;
+}
+
+.gradient-card-purple {
+  @apply bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200;
+}
+
+.dark .gradient-card-purple {
+  @apply from-purple-950/50 to-purple-900/50 border-purple-800;
 }
