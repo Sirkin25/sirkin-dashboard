@@ -29,35 +29,37 @@ function parseApartmentFeesData(csvData: string): ApartmentFeeRow[] {
     return firstCol && !firstCol.includes('סה״כ') && !firstCol.includes('תקציב') && !firstCol.includes('ממוצע')
   })
 
-  return dataRows
-    .map((row) => {
-      // Your sheet format: מספר דירה,תת חלקה,מ״ר בטאבו,סכום לחודש
-      const [aptNumStr, subParcelStr, sizeStr, monthlyFeeStr] = row
+  const validRows: ApartmentFeeRow[] = []
+  
+  for (const row of dataRows) {
+    // Your sheet format: מספר דירה,תת חלקה,מ״ר בטאבו,סכום לחודש
+    const [aptNumStr, subParcelStr, sizeStr, monthlyFeeStr] = row
 
-      const aptNum = Number.parseInt(aptNumStr || "0")
-      const size = Number.parseFloat(sizeStr || "0")
-      const monthlyFee = sheetsClient.parseHebrewCurrency(monthlyFeeStr || "0")
+    const aptNum = Number.parseInt(aptNumStr || "0")
+    const size = Number.parseFloat(sizeStr || "0")
+    const monthlyFee = sheetsClient.parseHebrewCurrency(monthlyFeeStr || "0")
 
-      // Skip invalid rows
-      if (aptNum <= 0 || monthlyFee <= 0) {
-        return null
-      }
+    // Skip invalid rows
+    if (aptNum <= 0 || monthlyFee <= 0) {
+      continue
+    }
 
-      return {
-        apartmentNumber: aptNum,
-        ownerName: `בעל דירה ${aptNum}`, // "Apartment Owner X"
-        apartmentSize: size,
-        baseFee: monthlyFee * 0.6, // Estimate breakdown
-        maintenanceFee: monthlyFee * 0.2,
-        elevatorFee: monthlyFee * 0.1,
-        cleaningFee: monthlyFee * 0.05,
-        insuranceFee: monthlyFee * 0.05,
-        totalMonthlyFee: monthlyFee,
-        specialAssessments: 0,
-        feeType: "owner" as const,
-      }
+    validRows.push({
+      apartmentNumber: aptNum,
+      ownerName: `בעל דירה ${aptNum}`, // "Apartment Owner X"
+      apartmentSize: size,
+      baseFee: monthlyFee * 0.6, // Estimate breakdown
+      maintenanceFee: monthlyFee * 0.2,
+      elevatorFee: monthlyFee * 0.1,
+      cleaningFee: monthlyFee * 0.05,
+      insuranceFee: monthlyFee * 0.05,
+      totalMonthlyFee: monthlyFee,
+      specialAssessments: 0,
+      feeType: "owner" as const,
     })
-    .filter((row): row is ApartmentFeeRow => row !== null)
+  }
+  
+  return validRows
 }
 
 export async function GET() {

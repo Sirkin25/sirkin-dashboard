@@ -30,7 +30,12 @@ export function TenantPayments() {
       const result: ApiResponse<TenantPaymentsResponse> = await res.json()
       
       if (!res.ok) {
-        setError(result.error || {
+        setError(result.error ? {
+          type: result.error.code as any,
+          message: result.error.message,
+          hebrewMessage: result.error.hebrewMessage,
+          canRetry: true
+        } : {
           type: 'unknown_error',
           message: 'API request failed',
           hebrewMessage: 'שגיאה לא ידועה',
@@ -211,11 +216,11 @@ export function TenantPayments() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right font-bold sticky-right hebrew-text">
+                <TableHead className="text-right font-bold sticky-right hebrew-text text-foreground">
                   דירה
                 </TableHead>
                 {displayMonthNames.map((month) => (
-                  <TableHead key={month} className="text-center font-bold min-w-[80px] hebrew-text">
+                  <TableHead key={month} className="text-center font-bold min-w-[80px] hebrew-text text-foreground">
                     {month}
                   </TableHead>
                 ))}
@@ -230,7 +235,7 @@ export function TenantPayments() {
                 }
                 return (
                   <TableRow key={index}>
-                    <TableCell className="text-right font-medium sticky-right hebrew-text">
+                    <TableCell className="text-right font-medium sticky-right hebrew-text text-foreground">
                       {apartment}
                     </TableCell>
                     {displayMonthIndices.map((monthIndex, i) => {

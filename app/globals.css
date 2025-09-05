@@ -103,7 +103,7 @@
 .sticky-right {
   position: sticky;
   right: 0;
-  background: white;
+  background: hsl(var(--background));
   z-index: 10;
   border-left: 1px solid hsl(var(--border));
 }

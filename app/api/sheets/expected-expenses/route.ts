@@ -22,42 +22,50 @@ function parseExpectedExpensesData(csvData: string): ExpectedExpenseRow[] {
   // Skip header row
   const dataRows = rows.slice(1)
 
-  return dataRows
-    .map((row, index) => {
-      // Correct column order: [category, amount, expectedMonth]
-      const [categoryStr, amountStr, expectedMonthStr] = row
+  const validRows: ExpectedExpenseRow[] = []
+  
+  for (let index = 0; index < dataRows.length; index++) {
+    const row = dataRows[index]
+    // Correct column order: [category, amount, expectedMonth]
+    const [categoryStr, amountStr, expectedMonthStr] = row
 
-      // Use category as description for now
-      const description = categoryStr || ""
-      const amount = sheetsClient.parseHebrewCurrency(amountStr || "0")
-      
-      // Parse the expected month (like "Jul-25") into a date
-      let dueDate = new Date()
-      if (expectedMonthStr) {
-        // Try to parse month-year format like "Jul-25"
-        const monthMatch = expectedMonthStr.match(/(\w+)-(\d+)/)
-        if (monthMatch) {
-          const [, monthStr, yearStr] = monthMatch
-          const year = 2000 + parseInt(yearStr) // Convert "25" to 2025
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-          const monthIndex = monthNames.indexOf(monthStr)
-          if (monthIndex !== -1) {
-            dueDate = new Date(year, monthIndex, 1)
-          }
+    // Use category as description for now
+    const description = categoryStr || ""
+    const amount = sheetsClient.parseHebrewCurrency(amountStr || "0")
+    
+    // Skip invalid rows
+    if (!description || amount <= 0) {
+      continue
+    }
+    
+    // Parse the expected month (like "Jul-25") into a date
+    let dueDate = new Date()
+    if (expectedMonthStr) {
+      // Try to parse month-year format like "Jul-25"
+      const monthMatch = expectedMonthStr.match(/(\w+)-(\d+)/)
+      if (monthMatch) {
+        const [, monthStr, yearStr] = monthMatch
+        const year = 2000 + parseInt(yearStr) // Convert "25" to 2025
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthIndex = monthNames.indexOf(monthStr)
+        if (monthIndex !== -1) {
+          dueDate = new Date(year, monthIndex, 1)
         }
       }
+    }
 
-      return {
-        id: `expected-${index + 1}`,
-        description,
-        category: categoryStr || "כללי",
-        amount,
-        dueDate,
-        priority: "medium" as const,
-        recurring: false,
-      }
+    validRows.push({
+      id: `expected-${index + 1}`,
+      description,
+      category: categoryStr || "כללי",
+      amount,
+      dueDate,
+      priority: "medium" as const,
+      recurring: false,
     })
-    .filter((row) => row.description && row.amount > 0)
+  }
+  
+  return validRows
 }
 
 export async function GET() {

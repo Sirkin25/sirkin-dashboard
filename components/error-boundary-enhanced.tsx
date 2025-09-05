@@ -135,7 +135,7 @@ export class DashboardErrorBoundary extends Component<Props, State> {
       return (
         <div className="max-w-2xl mx-auto mt-8">
           <ErrorRecoveryManager
-            error={this.state.error}
+            error={this.state.error!}
             errorId={this.state.errorId}
             onRecover={this.resetErrorBoundary}
             customActions={[

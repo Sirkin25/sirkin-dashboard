@@ -21,26 +21,34 @@ function parseMonthlyExpensesData(csvData: string): ExpenseRow[] {
   // Skip header row
   const dataRows = rows.slice(1)
 
-  return dataRows
-    .map((row, index) => {
-      // Your sheet format: תאריך,קטוגריה,סכום (Date, Category, Amount)
-      const [dateStr, categoryStr, amountStr] = row
+  const validRows: ExpenseRow[] = []
+  
+  for (let index = 0; index < dataRows.length; index++) {
+    const row = dataRows[index]
+    // Your sheet format: תאריך,קטוגריה,סכום (Date, Category, Amount)
+    const [dateStr, categoryStr, amountStr] = row
 
-      // Skip empty rows
-      if (!categoryStr || !amountStr) {
-        return null
-      }
+    // Skip empty rows
+    if (!categoryStr || !amountStr) {
+      continue
+    }
 
-      return {
-        id: `expense-${index + 1}`,
-        description: categoryStr || "", // Using category as description
-        category: categoryStr || "כללי",
-        amount: sheetsClient.parseHebrewCurrency(amountStr || "0"),
-        date: sheetsClient.parseHebrewDate(dateStr || ""),
-        status: "paid" as const, // Default to paid since these are recorded expenses
-      }
+    const amount = sheetsClient.parseHebrewCurrency(amountStr || "0")
+    if (amount <= 0) {
+      continue
+    }
+
+    validRows.push({
+      id: `expense-${index + 1}`,
+      description: categoryStr || "", // Using category as description
+      category: categoryStr || "כללי",
+      amount,
+      date: sheetsClient.parseHebrewDate(dateStr || ""),
+      status: "paid" as const, // Default to paid since these are recorded expenses
     })
-    .filter((row) => row !== null && row.description && row.amount > 0)
+  }
+  
+  return validRows
 }
 
 export async function GET() {

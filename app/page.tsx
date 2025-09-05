@@ -13,7 +13,7 @@ import { useTabRefresh } from "@/hooks/use-refresh-manager"
 import { useAutoRefresh } from "@/hooks/use-auto-refresh"
 import { NoDataAvailable } from "@/components/ui/no-data-available"
 import { ConnectionError } from "@/components/ui/connection-error"
-import { CardLoading } from "@/components/ui/loading-states"
+import { CardLoading, LoadingSpinner } from "@/components/ui/loading-states"
 import { formatCurrency, formatHebrewDate } from "@/lib/formatters"
 import { TrendingUp, Users, Building, DollarSign, Calendar, BarChart3, Home } from "lucide-react"
 
@@ -107,7 +107,11 @@ export default function HomePage() {
     }
     
     if (hookResult.loading) {
-      return <CardLoading />
+      return (
+        <div className="flex items-center justify-center py-4">
+          <LoadingSpinner size="md" message="טוען נתונים..." />
+        </div>
+      )
     }
     
     if (!hookResult.data) {
@@ -147,7 +151,7 @@ export default function HomePage() {
                 <>
                   <div
                     className={`text-2xl font-bold currency-hebrew ${
-                      (accountStatus.data?.balance || 0) >= 0 ? "text-green-600" : "text-red-600"
+                      (accountStatus.data?.balance || 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}
                   >
                     {formatCurrency(accountStatus.data?.balance || 0)}
@@ -173,7 +177,7 @@ export default function HomePage() {
               <div className="text-sm text-muted-foreground hebrew-text">אחוז תשלומים</div>
               {renderDataOrError(tenantPayments, (
                 <>
-                  <div className={`text-2xl font-bold ${paymentPercentage >= 80 ? "text-green-600" : "text-red-600"}`}>
+                  <div className={`text-2xl font-bold ${paymentPercentage >= 80 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                     {paymentPercentage}%
                   </div>
                   <div className="text-sm text-muted-foreground hebrew-text">
@@ -200,7 +204,7 @@ export default function HomePage() {
               <>
                 <div
                   className={`text-2xl font-bold currency-hebrew ${
-                    (accountStatus.data?.balance || 0) >= 0 ? "text-cyan-900 dark:text-cyan-100" : "text-red-600"
+                    (accountStatus.data?.balance || 0) >= 0 ? "text-cyan-900 dark:text-cyan-100" : "text-red-600 dark:text-red-400"
                   }`}
                 >
                   {formatCurrency(accountStatus.data?.balance || 0)}

@@ -28,27 +28,27 @@ export function NoDataAvailable({
   className
 }: NoDataAvailableProps) {
   return (
-    <Card className={`border-dashed border-2 border-gray-300 ${className}`}>
+    <Card className={`border-dashed border-2 border-gray-300 dark:border-gray-600 ${className}`}>
       <CardHeader className="text-center pb-4">
         <div className="flex justify-center mb-2">
-          <AlertCircle className="h-12 w-12 text-gray-400" />
+          <AlertCircle className="h-12 w-12 text-gray-400 dark:text-gray-500" />
         </div>
-        <CardTitle className="text-lg text-gray-600 hebrew-text">{title}</CardTitle>
+        <CardTitle className="text-lg text-gray-600 dark:text-gray-300 hebrew-text">{title}</CardTitle>
       </CardHeader>
       <CardContent className="text-center space-y-4">
-        <p className="text-gray-500 hebrew-text">{hebrewMessage}</p>
+        <p className="text-gray-500 dark:text-gray-400 hebrew-text">{hebrewMessage}</p>
         
         {showConnectionStatus && (
           <div className="flex items-center justify-center gap-2 text-sm">
             {isConnected ? (
               <>
-                <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-green-600 hebrew-text">מחובר לאינטרנט</span>
+                <Wifi className="h-4 w-4 text-green-500 dark:text-green-400" />
+                <span className="text-green-600 dark:text-green-400 hebrew-text">מחובר לאינטרנט</span>
               </>
             ) : (
               <>
-                <WifiOff className="h-4 w-4 text-red-500" />
-                <span className="text-red-600 hebrew-text">בעיית חיבור</span>
+                <WifiOff className="h-4 w-4 text-red-500 dark:text-red-400" />
+                <span className="text-red-600 dark:text-red-400 hebrew-text">בעיית חיבור</span>
               </>
             )}
           </div>
@@ -68,7 +68,7 @@ export function NoDataAvailable({
           </Button>
         )}
 
-        <div className="text-xs text-gray-400 hebrew-text">
+        <div className="text-xs text-gray-400 dark:text-gray-500 hebrew-text">
           בדוק את החיבור לאינטרנט ואת הגדרות גוגל שיטס
         </div>
       </CardContent>

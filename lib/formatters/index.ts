@@ -98,7 +98,7 @@ export function formatPaymentStatus(value: string): PaymentStatusDisplay {
   if (normalizedValue === "✓" || normalizedValue === "true" || normalizedValue === "שולם" || normalizedValue === "כן") {
     return { 
       icon: "✓", 
-      color: "text-green-600", 
+      color: "text-green-600 dark:text-green-400", 
       text: PAYMENT_STATUS_TEXTS.paid 
     }
   } else if (
@@ -109,19 +109,19 @@ export function formatPaymentStatus(value: string): PaymentStatusDisplay {
   ) {
     return { 
       icon: "✗", 
-      color: "text-red-600", 
+      color: "text-red-600 dark:text-red-400", 
       text: PAYMENT_STATUS_TEXTS.overdue 
     }
   } else if (normalizedValue === "ממתין" || normalizedValue === "pending") {
     return { 
       icon: "⏳", 
-      color: "text-yellow-600", 
+      color: "text-yellow-600 dark:text-yellow-400", 
       text: PAYMENT_STATUS_TEXTS.pending 
     }
   } else {
     return { 
       icon: "?", 
-      color: "text-gray-400", 
+      color: "text-gray-400 dark:text-gray-500", 
       text: PAYMENT_STATUS_TEXTS.unknown 
     }
   }

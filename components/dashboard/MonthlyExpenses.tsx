@@ -5,24 +5,53 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatCurrency, formatShortHebrewDate } from "@/lib/formatters"
 import { Plus, FileText, Trash2 } from "lucide-react"
-
-interface Expense {
-  id: string
-  description: string
-  category: string
-  amount: number
-  date: Date
-  status: "paid" | "pending" | "overdue"
-}
+import { LoadingSpinner } from "@/components/ui/loading-states"
+import { ConnectionError } from "@/components/ui/connection-error"
+import { NoDataAvailable } from "@/components/ui/no-data-available"
+import { useMonthlyExpenses } from "@/hooks/use-sheets-data"
 
 interface MonthlyExpensesProps {
-  expenses: Expense[]
-  totalBudget: number
+  totalBudget?: number
   onAddExpense?: () => void
   onDeleteExpense?: (id: string) => void
 }
 
-export function MonthlyExpenses({ expenses, totalBudget, onAddExpense, onDeleteExpense }: MonthlyExpensesProps) {
+export function MonthlyExpenses({ totalBudget = 10000, onAddExpense, onDeleteExpense }: MonthlyExpensesProps) {
+  const { data: expenses, loading, error, isConnected, refresh } = useMonthlyExpenses({ autoRefresh: true })
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="hebrew-text">הוצאות החודש</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoadingSpinner size="lg" message="טוען הוצאות חודשיות..." />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <ConnectionError
+        hebrewMessage="שגיאה בטעינת הוצאות חודשיות"
+        onRetry={refresh}
+        canRetry={true}
+      />
+    )
+  }
+
+  if (!expenses) {
+    return (
+      <NoDataAvailable
+        title="אין הוצאות חודשיות"
+        hebrewMessage="לא ניתן לטעון נתוני הוצאות חודשיות"
+        onRetry={refresh}
+        isConnected={isConnected}
+      />
+    )
+  }
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0)
   const budgetUsed = (totalExpenses / totalBudget) * 100
 
@@ -105,7 +134,7 @@ export function MonthlyExpenses({ expenses, totalBudget, onAddExpense, onDeleteE
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="hebrew-text">{formatShortHebrewDate(expense.date)}</span>
+                    <span className="hebrew-text">{formatShortHebrewDate(new Date(expense.date))}</span>
                     <Badge className={getStatusColor(expense.status)} variant="secondary">
                       <span className="hebrew-text">{getStatusText(expense.status)}</span>
                     </Badge>

@@ -13,7 +13,7 @@ export async function GET() {
       'apartment-fees'
     ]
     
-    const results = {}
+    const results: Record<string, any> = {}
     
     for (const endpoint of endpoints) {
       try {
@@ -35,7 +35,7 @@ export async function GET() {
       } catch (error) {
         results[endpoint] = {
           success: false,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         }
       }
     }
@@ -47,7 +47,7 @@ export async function GET() {
     
   } catch (error) {
     return NextResponse.json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

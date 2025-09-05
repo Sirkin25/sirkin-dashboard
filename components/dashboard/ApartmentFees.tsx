@@ -114,11 +114,11 @@ export function ApartmentFees() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">מספר דירה</TableHead>
-                  <TableHead className="text-right">בעל הדירה</TableHead>
-                  <TableHead className="text-right">גודל (מ"ר)</TableHead>
-                  <TableHead className="text-right">תשלום חודשי</TableHead>
-                  <TableHead className="text-right">סוג</TableHead>
+                  <TableHead className="text-right text-foreground">מספר דירה</TableHead>
+                  <TableHead className="text-right text-foreground">בעל הדירה</TableHead>
+                  <TableHead className="text-right text-foreground">גודל (מ"ר)</TableHead>
+                  <TableHead className="text-right text-foreground">תשלום חודשי</TableHead>
+                  <TableHead className="text-right text-foreground">סוג</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

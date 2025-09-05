@@ -35,28 +35,28 @@ export function ConnectionError({
   ]
 
   return (
-    <Card className={`border-red-200 bg-red-50 ${className}`}>
+    <Card className={`border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 ${className}`}>
       <CardHeader className="text-center pb-4">
         <div className="flex justify-center mb-2">
-          <AlertTriangle className="h-12 w-12 text-red-500" />
+          <AlertTriangle className="h-12 w-12 text-red-500 dark:text-red-400" />
         </div>
-        <CardTitle className="text-lg text-red-700 hebrew-text">{title}</CardTitle>
+        <CardTitle className="text-lg text-red-700 dark:text-red-300 hebrew-text">{title}</CardTitle>
         {errorCode && (
-          <div className="text-sm text-red-600 font-mono">
+          <div className="text-sm text-red-600 dark:text-red-400 font-mono">
             קוד שגיאה: {errorCode}
           </div>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-red-600 text-center hebrew-text">{hebrewMessage}</p>
+        <p className="text-red-600 dark:text-red-400 text-center hebrew-text">{hebrewMessage}</p>
         
         {showTroubleshooting && (
-          <div className="bg-white rounded-lg p-4 border border-red-200">
-            <h4 className="font-medium text-red-800 mb-2 hebrew-text">צעדים לפתרון בעיה:</h4>
-            <ul className="space-y-1 text-sm text-red-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-red-200 dark:border-red-800">
+            <h4 className="font-medium text-red-800 dark:text-red-200 mb-2 hebrew-text">צעדים לפתרון בעיה:</h4>
+            <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
               {troubleshootingSteps.map((step, index) => (
                 <li key={index} className="flex items-start gap-2 hebrew-text">
-                  <span className="text-red-500 font-bold">{index + 1}.</span>
+                  <span className="text-red-500 dark:text-red-400 font-bold">{index + 1}.</span>
                   {step}
                 </li>
               ))}
@@ -70,7 +70,7 @@ export function ConnectionError({
               variant="outline"
               onClick={onRetry}
               disabled={isRetrying}
-              className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-100"
+              className="flex items-center gap-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20"
             >
               <RefreshCw className={`h-4 w-4 ${isRetrying ? "animate-spin" : ""}`} />
               <span className="hebrew-text">
@@ -82,7 +82,7 @@ export function ConnectionError({
           <Button
             variant="ghost"
             size="sm"
-            className="flex items-center gap-2 text-red-600 hover:bg-red-100"
+            className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
             onClick={() => window.open('https://sheets.google.com', '_blank')}
           >
             <ExternalLink className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function ConnectionError({
           </Button>
         </div>
 
-        <div className="text-xs text-red-500 text-center hebrew-text">
+        <div className="text-xs text-red-500 dark:text-red-400 text-center hebrew-text">
           אם הבעיה נמשכת, פנה למנהל המערכת
         </div>
       </CardContent>

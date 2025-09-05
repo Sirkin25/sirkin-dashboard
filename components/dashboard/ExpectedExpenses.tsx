@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/badge"
 import { formatCurrency, formatShortHebrewDate } from "@/lib/formatters"
 import { useExpectedExpenses } from "@/hooks/use-sheets-data"
 import { Calendar, Clock, AlertCircle } from "lucide-react"
+import { LoadingSpinner } from "@/components/ui/loading-states"
+import { ConnectionError } from "@/components/ui/connection-error"
+import { NoDataAvailable } from "@/components/ui/no-data-available"
 
 export function ExpectedExpenses() {
-  const { data: expensesData, isLoading, error, isConnected } = useExpectedExpenses()
+  const { data: expensesData, loading, error, isConnected } = useExpectedExpenses()
 
-  if (isLoading) {
+  if (loading) {
     return (
       <Card>
         <CardHeader>
@@ -19,35 +22,34 @@ export function ExpectedExpenses() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground hebrew-text mt-2">טוען נתונים...</p>
-          </div>
+          <LoadingSpinner size="lg" message="טוען הוצאות צפויות..." />
         </CardContent>
       </Card>
     )
   }
 
-  if (error || !expensesData) {
+  if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="hebrew-text flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            הוצאות צפויות
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <p className="text-sm text-destructive hebrew-text">שגיאה בטעינת הנתונים</p>
-          </div>
-        </CardContent>
-      </Card>
+      <ConnectionError
+        hebrewMessage="שגיאה בטעינת הוצאות צפויות"
+        onRetry={() => window.location.reload()}
+        canRetry={true}
+      />
     )
   }
 
-  const expenses = expensesData.expenses || []
+  if (!expensesData) {
+    return (
+      <NoDataAvailable
+        title="אין הוצאות צפויות"
+        hebrewMessage="לא ניתן לטעון נתוני הוצאות צפויות"
+        onRetry={() => window.location.reload()}
+        isConnected={isConnected}
+      />
+    )
+  }
+
+  const expenses = expensesData || []
   const totalExpected = expenses.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0)
 
   const urgentExpenses = expenses.filter((expense: any) => {
