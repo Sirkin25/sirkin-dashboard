@@ -1,23 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TenantPayments } from "@/components/dashboard/TenantPayments"
 import { ApartmentFees } from "@/components/dashboard/ApartmentFees"
-import { useAccountStatus, useMonthlyExpenses, useExpectedExpenses, useTenantPayments } from "@/hooks/use-sheets-data"
-import { formatCurrency, formatHebrewDate } from "@/lib/hebrew-utils"
+import { useAccountStatus, useMonthlyExpenses, useExpectedExpenses, useTenantPayments, useApartmentFees } from "@/hooks/use-sheets-data"
+import { formatCurrency, formatHebrewDate } from "@/lib/formatters"
 import { TrendingUp, Users, Building, DollarSign, Calendar, RefreshCw, BarChart3, Home } from "lucide-react"
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("overview")
+  const [mounted, setMounted] = useState(false)
 
   const accountStatus = useAccountStatus({ autoRefresh: true, refreshInterval: 300000 })
   const monthlyExpenses = useMonthlyExpenses({ autoRefresh: true })
   const expectedExpenses = useExpectedExpenses()
   const tenantPayments = useTenantPayments()
+  const apartmentFees = useApartmentFees()
+
+  // Prevent hydration mismatch by only showing dynamic content after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleRefreshAll = async () => {
     await Promise.all([
@@ -25,27 +32,32 @@ export default function HomePage() {
       monthlyExpenses.refresh(),
       expectedExpenses.refresh(),
       tenantPayments.refresh(),
+      apartmentFees.refresh(),
     ])
   }
 
   const isLoading =
-    accountStatus.loading || monthlyExpenses.loading || expectedExpenses.loading || tenantPayments.loading
+    accountStatus.loading || monthlyExpenses.loading || expectedExpenses.loading || tenantPayments.loading || apartmentFees.loading
 
-  const totalMonthlyExpenses = monthlyExpenses.data?.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0
-  const paidPayments = tenantPayments.data?.payments?.filter((p) => p.status === "paid").length || 0
-  const overduePayments = tenantPayments.data?.payments?.filter((p) => p.status === "overdue").length || 0
-  const totalPayments = tenantPayments.data?.payments?.length || 1
-  const paymentPercentage = Math.round((paidPayments / totalPayments) * 100)
-  const totalMonthlyIncome = tenantPayments.data?.payments?.reduce((sum, p) => sum + p.monthlyFee, 0) || 0
-  const urgentExpenses =
-    expectedExpenses.data?.expenses?.filter((exp) => {
+  const totalMonthlyExpenses = monthlyExpenses.data?.reduce((sum, exp) => sum + exp.amount, 0) || 0
+  // Use the statistics from the API instead of calculating manually
+  const paymentStats = tenantPayments.data?.statistics
+  const totalPayments = tenantPayments.data?.data?.length || 1
+  const paymentPercentage = Math.round(paymentStats?.paymentRate || 0)
+  const paidPayments = paymentStats?.totalPayments || 0
+  const overduePayments = (paymentStats?.totalPossible || 0) - (paymentStats?.totalPayments || 0)
+  
+  // Use apartment fees data for real income calculation
+  const totalMonthlyIncome = apartmentFees.data?.totalRevenue || totalPayments * 150 // Fallback to estimate
+  const urgentExpenses = mounted ? 
+    expectedExpenses.data?.filter((exp) => {
       const daysUntilDue = Math.ceil((new Date(exp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
       return daysUntilDue <= 30
-    }).length || 0
-  const totalExpectedExpenses = expectedExpenses.data?.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0
+    }).length || 0 : 0
+  const totalExpectedExpenses = expectedExpenses.data?.reduce((sum, exp) => sum + exp.amount, 0) || 0
 
   const getConnectionStatus = () => {
-    const connections = [accountStatus, monthlyExpenses, expectedExpenses, tenantPayments]
+    const connections = [accountStatus, monthlyExpenses, expectedExpenses, tenantPayments, apartmentFees]
     const connectedCount = connections.filter((conn) => conn.isConnected).length
     const totalCount = connections.length
     return { connectedCount, totalCount, isFullyConnected: connectedCount === totalCount }
@@ -196,10 +208,16 @@ export default function HomePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900 currency-hebrew">
-              {formatCurrency(totalExpectedExpenses)}
-            </div>
-            <div className="text-xs text-purple-600 hebrew-text">הוצאות מתוכננות לחודשים הקרובים</div>
+            {expectedExpenses.loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-purple-900 currency-hebrew">
+                  {formatCurrency(totalExpectedExpenses)}
+                </div>
+                <div className="text-xs text-purple-600 hebrew-text">הוצאות מתוכננות לחודשים הקרובים</div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -222,7 +240,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {monthlyExpenses.data?.expenses?.slice(0, 5).map((expense, index) => (
+                {monthlyExpenses.data?.slice(0, 5).map((expense, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <span className="hebrew-text">{expense.description}</span>
                     <span className="font-semibold currency-hebrew">{formatCurrency(expense.amount)}</span>
@@ -249,7 +267,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {expectedExpenses.data?.expenses?.slice(0, 5).map((expense, index) => (
+                {expectedExpenses.data?.slice(0, 5).map((expense, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <div>
                       <span className="hebrew-text">{expense.description}</span>
@@ -295,7 +313,7 @@ export default function HomePage() {
             </span>
             <span className="text-sm text-gray-600 hebrew-text">
               עודכן:{" "}
-              {accountStatus.data?.lastFetched ? formatHebrewDate(new Date(accountStatus.data.lastFetched)) : "לא זמין"}
+              {mounted && accountStatus.lastFetched ? formatHebrewDate(accountStatus.lastFetched) : "לא זמין"}
             </span>
             <div className="flex items-center gap-2">
               <div

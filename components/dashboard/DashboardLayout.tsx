@@ -18,12 +18,14 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, currentPage = "dashboard" }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   // Setup global error handlers on mount
   useEffect(() => {
     setupGlobalErrorHandlers()
+    setMounted(true)
   }, [])
 
   const handleNavigation = (href: string) => {
@@ -70,7 +72,7 @@ export function DashboardLayout({ children, currentPage = "dashboard" }: Dashboa
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded hebrew-text">נתונים נטענו בהצלחה</span>
-              <span className="text-gray-600 hebrew-text">עודכן: {new Date().toLocaleTimeString("he-IL")}</span>
+              <span className="text-gray-600 hebrew-text">עודכן: {mounted ? new Date().toLocaleTimeString("he-IL") : "טוען..."}</span>
             </div>
           </div>
         </div>

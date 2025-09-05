@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockApartmentFees } from "@/lib/mock-data"
 
 const APARTMENT_FEES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.APARTMENT_FEES_GID || "4",
 }
 
@@ -65,27 +65,50 @@ export async function GET() {
   try {
     const result = await sheetsClient.fetchSheetData(APARTMENT_FEES_CONFIG, parseApartmentFeesData, mockApartmentFees)
 
-    const buildingTotalArea = result.data.reduce((sum, fee) => sum + fee.apartmentSize, 0)
+    const totalRevenue = result.data.reduce((sum, fee) => sum + fee.totalMonthlyFee, 0)
+    const averageFee = result.data.length > 0 ? totalRevenue / result.data.length : 0
 
-    return NextResponse.json({
-      fees: result.data,
-      buildingTotalArea,
-      isConnected: result.status === "connected",
-      source: result.source,
-      lastFetched: result.lastUpdated,
-    })
+    const response = {
+      data: {
+        apartments: result.data,
+        totalRevenue,
+        averageFee
+      },
+      meta: {
+        isConnected: result.status === "connected",
+        source: result.source as 'sheets' | 'mock' | 'error',
+        lastFetched: result.lastUpdated.toISOString(),
+        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+      }
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Apartment fees API error:", error)
 
-    const buildingTotalArea = mockApartmentFees.reduce((sum, fee) => sum + fee.apartmentSize, 0)
+    const totalRevenue = mockApartmentFees.reduce((sum, fee) => sum + fee.totalMonthlyFee, 0)
+    const averageFee = mockApartmentFees.length > 0 ? totalRevenue / mockApartmentFees.length : 0
 
-    return NextResponse.json({
-      fees: mockApartmentFees,
-      buildingTotalArea,
-      isConnected: false,
-      source: "Mock Data (API Error)",
-      lastFetched: new Date(),
-    })
+    const response = {
+      data: {
+        apartments: mockApartmentFees,
+        totalRevenue,
+        averageFee
+      },
+      meta: {
+        isConnected: false,
+        source: "mock" as const,
+        lastFetched: new Date().toISOString(),
+        message: "נתוני דוגמה - שגיאה בחיבור"
+      },
+      error: {
+        code: "FETCH_ERROR",
+        message: error instanceof Error ? error.message : "Unknown error",
+        hebrewMessage: "שגיאה בטעינת נתונים"
+      }
+    }
+
+    return NextResponse.json(response, { status: 500 })
   }
 }
 

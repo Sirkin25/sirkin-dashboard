@@ -13,18 +13,23 @@ const ACCOUNT_STATUS_CONFIG = {
 
 function parseAccountStatusData(csvData: string): AccountStatusData[] {
   const rows = sheetsClient.parseCSV(csvData)
+  
+  console.log("Account Status CSV rows:", rows)
 
   // Skip header row
   const dataRows = rows.slice(1)
 
   return dataRows
     .map((row) => {
-      const [balanceStr, dateStr, changeStr] = row
+      // Correct column order: [dateStr, balanceStr, changeStr]
+      const [dateStr, balanceStr, changeStr] = row
 
       const balance = parseHebrewCurrency(balanceStr || "0")
       const lastUpdated = parseHebrewDate(dateStr || "")
       const monthlyChange = Number.parseFloat(changeStr || "0")
       const status = formatAccountStatus(balance)
+
+      console.log("Parsing account status:", { dateStr, balanceStr, balance, changeStr, monthlyChange })
 
       return {
         balance,

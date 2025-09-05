@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Loader2, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -107,6 +108,12 @@ interface RefreshIndicatorProps {
 }
 
 export function RefreshIndicator({ isRefreshing, onRefresh, lastUpdated, className }: RefreshIndicatorProps) {
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <div className={`flex items-center gap-2 text-sm text-muted-foreground ${className}`}>
       {isRefreshing ? (
@@ -116,7 +123,7 @@ export function RefreshIndicator({ isRefreshing, onRefresh, lastUpdated, classNa
         </>
       ) : (
         <>
-          {lastUpdated && (
+          {lastUpdated && mounted && (
             <span className="hebrew-text">
               עודכן: {lastUpdated.toLocaleTimeString("he-IL")}
             </span>

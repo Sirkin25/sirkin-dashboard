@@ -25,6 +25,7 @@ export function formatNumber(num: number): string {
 
 /**
  * Format dates in Hebrew with proper error handling
+ * Uses a stable format to prevent hydration mismatches
  */
 export function formatHebrewDate(date: Date | string): string {
   try {
@@ -32,11 +33,13 @@ export function formatHebrewDate(date: Date | string): string {
     if (isNaN(validDate.getTime())) {
       return "תאריך לא תקין"
     }
-    return new Intl.DateTimeFormat("he-IL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(validDate)
+    
+    // Use a more stable format that won't cause hydration issues
+    const day = validDate.getDate().toString().padStart(2, '0')
+    const month = (validDate.getMonth() + 1).toString().padStart(2, '0')
+    const year = validDate.getFullYear()
+    
+    return `${day}/${month}/${year}`
   } catch (error) {
     return "תאריך לא תקין"
   }

@@ -14,6 +14,7 @@ export function AccountStatus() {
   const [response, setResponse] = useState<ApiResponse<AccountStatusData> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<ErrorState | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -23,7 +24,15 @@ export function AccountStatus() {
       const result: ApiResponse<AccountStatusData> = await res.json()
       
       if (!res.ok) {
-        setError(result.error || null)
+        const apiError = result.error
+        if (apiError) {
+          setError({
+            type: 'sheets_connection_error',
+            message: apiError.message,
+            hebrewMessage: apiError.hebrewMessage,
+            canRetry: true
+          })
+        }
       } else {
         setResponse(result)
       }
@@ -45,6 +54,7 @@ export function AccountStatus() {
   }
 
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, [])
 
@@ -158,12 +168,12 @@ export function AccountStatus() {
         {/* Last Updated */}
         <div className="text-center">
           <p className="text-xs text-muted-foreground hebrew-text">
-            עדכון אחרון: {formatHebrewDate(lastUpdated)}
+            עדכון אחרון: {mounted ? formatHebrewDate(lastUpdated) : "טוען..."}
           </p>
           <RefreshIndicator
             isRefreshing={false}
             onRefresh={handleRetry}
-            lastUpdated={new Date(meta.lastFetched)}
+            lastUpdated={mounted ? new Date(meta.lastFetched) : new Date()}
             className="mt-2 justify-center"
           />
         </div>

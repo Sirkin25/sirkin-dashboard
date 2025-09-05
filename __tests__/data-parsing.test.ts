@@ -24,7 +24,7 @@ describe('Data Parsing and Formatting Tests', () => {
       const result1500 = formatCurrency(1500)
       const result15725 = formatCurrency(15725)
       const result100 = formatCurrency(100)
-      
+
       // Hebrew locale formatting includes RTL marks and different positioning
       expect(result1500).toContain('1,500')
       expect(result1500).toContain('₪')
@@ -48,7 +48,7 @@ describe('Data Parsing and Formatting Tests', () => {
     it('should handle decimal amounts correctly', () => {
       const result1 = formatCurrency(1500.50)
       const result2 = formatCurrency(1500.25)
-      
+
       // Hebrew locale may handle decimals differently
       expect(result1).toContain('₪')
       expect(result2).toContain('₪')
@@ -57,7 +57,7 @@ describe('Data Parsing and Formatting Tests', () => {
     it('should handle large amounts correctly', () => {
       const result1M = formatCurrency(1000000)
       const result1234567 = formatCurrency(1234567)
-      
+
       expect(result1M).toContain('1,000,000')
       expect(result1234567).toContain('1,234,567')
     })

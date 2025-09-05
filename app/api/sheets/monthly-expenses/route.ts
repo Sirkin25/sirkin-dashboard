@@ -3,7 +3,7 @@ import { sheetsClient } from "@/lib/sheets-client"
 import { mockExpenses } from "@/lib/mock-data"
 
 const MONTHLY_EXPENSES_CONFIG = {
-  sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+  sheetId: process.env.GOOGLE_SHEETS_ID || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
   gid: process.env.MONTHLY_EXPENSES_GID || "1",
 }
 
@@ -48,23 +48,36 @@ export async function GET() {
   try {
     const result = await sheetsClient.fetchSheetData(MONTHLY_EXPENSES_CONFIG, parseMonthlyExpensesData, mockExpenses)
 
-    return NextResponse.json({
-      expenses: result.data,
-      totalBudget: 12000, // This could also come from sheets
-      isConnected: result.status === "connected",
-      source: result.source,
-      lastFetched: result.lastUpdated,
-    })
+    const response = {
+      data: result.data,
+      meta: {
+        isConnected: result.status === "connected",
+        source: result.source as 'sheets' | 'mock' | 'error',
+        lastFetched: result.lastUpdated.toISOString(),
+        message: result.status === "connected" ? "נתונים נטענו מגוגל שיטס" : "נתוני דוגמה"
+      }
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Monthly expenses API error:", error)
 
-    return NextResponse.json({
-      expenses: mockExpenses,
-      totalBudget: 12000,
-      isConnected: false,
-      source: "Mock Data (API Error)",
-      lastFetched: new Date(),
-    })
+    const response = {
+      data: mockExpenses,
+      meta: {
+        isConnected: false,
+        source: "mock" as const,
+        lastFetched: new Date().toISOString(),
+        message: "נתוני דוגמה - שגיאה בחיבור"
+      },
+      error: {
+        code: "FETCH_ERROR",
+        message: error instanceof Error ? error.message : "Unknown error",
+        hebrewMessage: "שגיאה בטעינת נתונים"
+      }
+    }
+
+    return NextResponse.json(response, { status: 500 })
   }
 }
 
